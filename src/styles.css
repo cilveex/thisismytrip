@@ -1,0 +1,24 @@
+@import "tailwindcss";
+@source not "../lovable-reference";
+
+/* Full design system lands in step 2 — tokens only for now. */
+:root {
+  --bg: #f3f6f4;
+  --ink: #1d2428;
+  --primary: #1f5f8b;
+  --accent: #f2c230;
+  --good: #3e6b48;
+  --bad: #b8432a;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #11181c;
+    --ink: #e8eef0;
+  }
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+}
