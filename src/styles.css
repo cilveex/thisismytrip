@@ -213,6 +213,18 @@ dialog.sheet[open] {
   font-family: var(--font-sans);
   background: var(--soft);
 }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+  }
+}
+:root[data-theme="dark"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+/* Chrome leaves hairline seams between raster tiles; additive blending hides them */
+.leaflet-tile-container img.leaflet-tile {
+  mix-blend-mode: plus-lighter;
+}
 .leaflet-control-zoom a {
   width: 44px !important;
   height: 44px !important;
@@ -224,14 +236,6 @@ dialog.sheet[open] {
   font-size: 0.85rem;
   font-weight: 700;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .leaflet-tile-pane {
-    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
-  }
-}
-:root[data-theme="dark"] .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
-}
 
 .pin {
   display: grid;
@@ -242,11 +246,42 @@ dialog.sheet[open] {
   border: 2px solid #fff;
   box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
 }
+/* Area pins can be nudged off their true spot to avoid overlap; a leader line points back. */
+.pin-anchor {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+.pin-anchor > .pin-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.pin-leader {
+  position: absolute;
+  top: 21px;
+  left: 22px;
+  height: 2px;
+  transform-origin: 0 50%;
+  background: #1d2428;
+  opacity: 0.7;
+}
+.pin-dot {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #1d2428;
+  border: 1.5px solid #fff;
+}
 .pin-area {
   background: #f2c230;
   color: #1d2428;
-  width: 40px;
-  height: 40px;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
   font-size: 17px;
 }
 .pin-area.active {

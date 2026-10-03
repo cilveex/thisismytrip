@@ -1,6 +1,7 @@
 import { BrowserRouter, Route, Routes } from "react-router";
 import { AppShell } from "./components/AppShell";
 import MapPage from "./pages/MapPage";
+import StayPage from "./pages/StayPage";
 import { Placeholder } from "./pages/Placeholder";
 
 export default function App() {
@@ -9,7 +10,7 @@ export default function App() {
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<MapPage />} />
-          <Route path="stay" element={<Placeholder title="Stay" step={3} />} />
+          <Route path="stay" element={<StayPage />} />
           <Route path="budget" element={<Placeholder title="Budget" step={4} />} />
           <Route path="days" element={<Placeholder title="Days" step={5} />} />
           <Route path="notes" element={<Placeholder title="Notes" step={5} />} />

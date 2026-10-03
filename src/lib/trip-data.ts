@@ -190,15 +190,22 @@ export function guessArea(text: string, areas: Area[]): string | null {
   return null;
 }
 
+const ROMAN = /^(i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii)$/i;
+
+/** "harbour-club-ii" → "Harbour Club II" */
+function titleFromSlug(slug: string) {
+  return slug
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((w) => (ROMAN.test(w) ? w.toUpperCase() : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join(" ");
+}
+
+/** Best-effort listing name from a Booking.com or Airbnb URL ("" if unknown). */
 export function nameFromLink(url: string): string {
   const b = url.match(/booking\.com\/hotel\/[a-z]{2}\/([^.?/#]+)/i);
-  if (b?.[1])
-    return b[1]
-      .split("-")
-      .filter(Boolean)
-      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-      .join(" ");
-  const a = url.match(/airbnb\.[a-z.]+\/rooms\/(\d+)/i);
+  if (b?.[1]) return titleFromSlug(decodeURIComponent(b[1]));
+  const a = url.match(/airbnb\.[a-z.]+\/rooms\/(?:plus\/)?(\d+)/i);
   if (a?.[1]) return `Airbnb ${a[1]}`;
   return "";
 }
