@@ -1,67 +1,113 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { ChevronRight, SlidersHorizontal } from "lucide-react";
+import { ChevronRight, RotateCcw, SlidersHorizontal, Upload } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
-import { computeBudget, eur, groupLabel, noCarImpact, splitStayWarning, type Line } from "@/lib/budget";
+import {
+  choosePlanningArea,
+  computeBudget,
+  eur,
+  groupLabel,
+  leftLabel,
+  noCarImpact,
+  splitStayWarning,
+  type Line,
+} from "@/lib/budget";
 import { NIGHTS, areaById, type TripState, type Who } from "@/lib/trip-data";
-import { LeftPill, NumField, PageHead, SelectField, Sheet, Switch, Warning } from "@/components/ui";
+import { sandboxDiffers, sandboxFrom, useSandbox, withSandbox, type Sandbox } from "@/lib/sandbox";
+import { useToast } from "@/lib/toast";
+import { Button, LeftPill, NumField, PageHead, SelectField, Sheet, Switch, Warning } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 type Update = ReturnType<typeof useTrip>["update"];
 
+interface Try {
+  view: TripState; // trip with the sandbox applied
+  trying: ReturnType<typeof computeBudget>;
+  saved: ReturnType<typeof computeBudget>;
+  dirty: boolean;
+  change: (patch: Partial<Sandbox>) => void;
+  setPlanningArea: (id: string) => void;
+  setFamilyApt: (id: string | null) => void;
+  apply: () => void;
+  reset: () => void;
+}
+
 export default function BudgetPage() {
   const { trip, update } = useTrip();
-  // Car days while dragging: kept local so the slider stays smooth, committed after a pause.
-  const [carDraft, setCarDraft] = useState<number | null>(null);
-  const commitTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [sb, setSb] = useSandbox();
   const [drawer, setDrawer] = useState(false);
-  useEffect(() => () => void (commitTimer.current && clearTimeout(commitTimer.current)), []);
+  const toast = useToast();
   if (!trip) return null;
 
-  const view: TripState = carDraft == null ? trip : { ...trip, budget: { ...trip.budget, carDays: carDraft } };
-  const b = computeBudget(view);
-
-  const onCarDays = (v: number) => {
-    setCarDraft(v);
-    if (commitTimer.current) clearTimeout(commitTimer.current);
-    commitTimer.current = setTimeout(() => {
+  const view = withSandbox(trip, sb);
+  const base = sandboxFrom(view);
+  const t: Try = {
+    view,
+    trying: computeBudget(view),
+    saved: computeBudget(trip),
+    dirty: sandboxDiffers(trip, sb),
+    change: (patch) => setSb({ ...base, ...patch }),
+    setPlanningArea: (id) => {
+      const r = choosePlanningArea(view, base, id);
+      setSb({ ...base, planningArea: r.planningArea, familyAptId: r.familyAptId });
+      if (r.message) toast(r.message);
+    },
+    setFamilyApt: (id) => {
+      // Transfers follow where the family stays
+      const apt = id ? view.apartments.find((a) => a.id === id) : undefined;
+      setSb({ ...base, familyAptId: id, planningArea: apt?.area ?? base.planningArea });
+    },
+    apply: () => {
       update((s) => {
-        s.budget.carDays = v;
+        s.planningArea = base.planningArea;
+        s.familyAptId = base.familyAptId;
+        s.coupleAptId = base.coupleAptId;
+        s.budget.useCar = base.useCar;
+        s.budget.carDays = base.carDays;
       });
-      setCarDraft(null);
-    }, 300);
+      setSb(null);
+      toast("Applied to the shared plan.");
+    },
+    reset: () => setSb(null),
   };
 
-  const panel = <TryPanel view={view} update={update} onCarDays={onCarDays} />;
-
   return (
-    <div className="pb-20 md:pb-0">
-      <PageHead title="Budget" sub={`Shared pool for ${b.people} travellers, ${NIGHTS} nights.`} />
+    <div className="pb-24 lg:pb-0">
+      <PageHead title="Budget" sub={`Shared pool for ${t.saved.people} travellers, ${NIGHTS} nights.`} />
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start">
         <div className="min-w-0 space-y-6">
-          <Result view={view} />
-          <Breakdown view={view} lines={b.lines} total={b.total} />
+          <Result t={t} />
+          <Breakdown view={view} lines={t.trying.lines} total={t.trying.total} />
           <Settings trip={trip} update={update} />
         </div>
 
         {/* Desktop: sticky side panel */}
         <aside className="surface hidden p-5 lg:sticky lg:top-24 lg:block" aria-labelledby="try-h">
-          <h2 id="try-h" className="mb-4 text-xl font-extrabold">
+          <h2 id="try-h" className="text-xl font-extrabold">
             Try it out
           </h2>
-          {panel}
+          <p className="mb-4 text-sm text-muted">Only you see this until you apply it.</p>
+          <TryStatus t={t} />
+          <TryPanel t={t} />
         </aside>
       </div>
 
       {/* Mobile/tablet: sticky bar above the tab bar, opens the drawer */}
       <div className="fixed inset-x-0 bottom-[calc(4rem+1px+env(safe-area-inset-bottom))] z-[900] border-t bg-card/95 px-4 py-2 backdrop-blur lg:hidden">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
-          <LeftPill left={b.left} className="text-lg" />
+          {t.dirty ? (
+            <div className="min-w-0">
+              <LeftPill left={t.trying.left} prefix="Trying: " className="text-sm" />
+              <p className="mt-0.5 truncate text-xs font-bold text-muted">Saved plan: {leftLabel(t.saved.left)}</p>
+            </div>
+          ) : (
+            <LeftPill left={t.saved.left} className="text-lg" />
+          )}
           <button
             type="button"
             onClick={() => setDrawer(true)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full bg-primary px-4 font-bold text-on-primary"
             aria-haspopup="dialog"
           >
             <SlidersHorizontal className="h-5 w-5" aria-hidden /> Try it out
@@ -70,36 +116,67 @@ export default function BudgetPage() {
       </div>
 
       <Sheet open={drawer} onClose={() => setDrawer(false)} title="Try it out">
-        <div className="sticky -top-3 z-10 -mx-5 mb-4 border-b bg-card px-5 py-3" aria-live="polite">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <LeftPill left={b.left} className="text-lg" />
-            <span className="text-sm text-muted tabular-nums">
-              {eur(b.total)} of {eur(b.pool)}
-            </span>
-          </div>
+        <p className="-mt-1 mb-3 text-sm text-muted">Only you see this until you apply it.</p>
+        <div className="sticky -top-3 z-10 -mx-5 mb-4 border-b bg-card px-5 py-3">
+          <TryStatus t={t} />
         </div>
-        {panel}
+        <TryPanel t={t} />
       </Sheet>
+    </div>
+  );
+}
+
+/* ---------------- Sandbox status ---------------- */
+
+function TryStatus({ t }: { t: Try }) {
+  if (!t.dirty)
+    return (
+      <div className="mb-4" aria-live="polite">
+        <LeftPill left={t.saved.left} className="text-lg" />
+        <p className="mt-1 text-sm text-muted">Saved plan. Change something below to try it.</p>
+      </div>
+    );
+  return (
+    <div className="mb-4 space-y-2" aria-live="polite">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-extrabold tracking-wide text-muted uppercase">Trying</span>
+        <LeftPill left={t.trying.left} className="text-lg" />
+      </div>
+      <p className="font-bold text-muted">
+        Saved plan: <span className={t.saved.left >= 0 ? "text-good" : "text-bad"}>{leftLabel(t.saved.left)}</span>
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <Button onClick={t.apply}>
+          <Upload className="h-4 w-4" aria-hidden /> Apply to shared plan
+        </Button>
+        <Button variant="ghost" onClick={t.reset}>
+          <RotateCcw className="h-4 w-4" aria-hidden /> Reset
+        </Button>
+      </div>
     </div>
   );
 }
 
 /* ---------------- Result ---------------- */
 
-function Result({ view }: { view: TripState }) {
-  const b = computeBudget(view);
+function Result({ t }: { t: Try }) {
+  const { view, trying: b } = t;
   const ok = b.left >= 0;
   const max = Math.max(b.total, b.pool) || 1;
   const split = splitStayWarning(view);
-  const fam = view.familyAptId ? view.apartments.find((a) => a.id === view.familyAptId) : undefined;
   const noCar = !view.budget.useCar ? noCarImpact(view) : null;
 
   return (
-    <section className="surface space-y-4 p-5" aria-labelledby="result-h">
+    <section className={cn("surface space-y-4 p-5", t.dirty && "outline-3 outline-accent")} aria-labelledby="result-h">
       <h2 id="result-h" className="sr-only">
         Result
       </h2>
       <div>
+        {t.dirty && (
+          <p className="mb-1 inline-block rounded-full bg-accent px-3 py-0.5 text-sm font-extrabold text-on-accent">
+            Trying — not saved
+          </p>
+        )}
         <p
           className={cn(
             "font-display text-5xl font-extrabold tabular-nums md:text-6xl",
@@ -108,6 +185,11 @@ function Result({ view }: { view: TripState }) {
         >
           {eur(b.left)} {ok ? "left" : "over"}
         </p>
+        {t.dirty && (
+          <p className="mt-1 font-bold">
+            Saved plan: <span className={t.saved.left >= 0 ? "text-good" : "text-bad"}>{leftLabel(t.saved.left)}</span>
+          </p>
+        )}
         <p className="mt-1 text-muted tabular-nums">
           Total {eur(b.total)} · pool {eur(b.pool)} ({eur(view.budget.poolPerPerson)} × {b.people})
         </p>
@@ -157,12 +239,6 @@ function Result({ view }: { view: TripState }) {
       </dl>
 
       {split && <Warning>{split}</Warning>}
-      {fam && fam.area !== view.planningArea && (
-        <Warning>
-          The family place is in {areaById(view, fam.area).name}, but transfers are planned from{" "}
-          {areaById(view, view.planningArea).name}.
-        </Warning>
-      )}
       {noCar && (
         <p className="rounded-xl bg-accent/20 p-3">
           <strong>No car:</strong> {noCar.places} become organised tours{" "}
@@ -268,28 +344,23 @@ function Settings({ trip, update }: { trip: TripState; update: Update }) {
 
 /* ---------------- Try it out ---------------- */
 
-function TryPanel({
-  view,
-  update,
-  onCarDays,
-}: {
-  view: TripState;
-  update: Update;
-  onCarDays: (v: number) => void;
-}) {
+function TryPanel({ t }: { t: Try }) {
+  const { view } = t;
   const b = view.budget;
   const carCost = b.carDays * (b.carRate + b.fuelRate);
+  const sliderId = useId(); // panel renders twice (desktop aside + mobile drawer)
   const aptOptions = (who: Who) => [
     { value: "", label: "Area estimate" },
     ...view.apartments
-      .filter((a) => a.who === who && (a.status !== "no" || a.id === view[who === "family" ? "familyAptId" : "coupleAptId"]))
+      .filter(
+        (a) => a.who === who && (a.status !== "no" || a.id === view[who === "family" ? "familyAptId" : "coupleAptId"]),
+      )
       .map((a) => ({
         value: a.id,
         label: `${a.name} · ${areaById(view, a.area).name}${a.total != null ? ` · ${eur(a.total)}` : ""}`,
       })),
   ];
   const split = splitStayWarning(view);
-  const sliderId = useId(); // panel renders twice (desktop aside + mobile drawer)
 
   return (
     <div className="space-y-5">
@@ -297,53 +368,32 @@ function TryPanel({
         <SelectField
           label="Planning area (transfers)"
           value={view.planningArea}
-          onChange={(v) =>
-            update((s) => {
-              s.planningArea = v;
-            })
-          }
+          onChange={t.setPlanningArea}
           options={view.areas.map((a) => ({ value: a.id, label: a.name }))}
         />
         <SelectField
           label={groupLabel(view, "family")}
           value={view.familyAptId ?? ""}
-          onChange={(v) =>
-            update((s) => {
-              s.familyAptId = v || null;
-              // Transfers follow where the family stays
-              const apt = s.apartments.find((a) => a.id === v);
-              if (apt) s.planningArea = apt.area;
-            })
-          }
+          onChange={(v) => t.setFamilyApt(v || null)}
           options={aptOptions("family")}
         />
         <SelectField
           label={groupLabel(view, "couple")}
           value={view.coupleAptId ?? ""}
-          onChange={(v) =>
-            update((s) => {
-              s.coupleAptId = v || null;
-            })
-          }
+          onChange={(v) => t.change({ coupleAptId: v || null })}
           options={aptOptions("couple")}
         />
         {split && <Warning className="text-sm">{split}</Warning>}
       </Group>
 
       <Group title="Car">
-        <Switch
-          label="Rent a car"
-          checked={b.useCar}
-          onChange={(on) =>
-            update((s) => {
-              s.budget.useCar = on;
-            })
-          }
-        />
+        <Switch label="Rent a car" checked={b.useCar} onChange={(useCar) => t.change({ useCar })} />
         {b.useCar ? (
           <div>
             <label htmlFor={sliderId} className="flex items-baseline justify-between font-bold">
-              <span>Car for {b.carDays} {b.carDays === 1 ? "day" : "days"}</span>
+              <span>
+                Car for {b.carDays} {b.carDays === 1 ? "day" : "days"}
+              </span>
               <span className="tabular-nums">{eur(carCost)}</span>
             </label>
             <input
@@ -353,7 +403,7 @@ function TryPanel({
               max={7}
               step={1}
               value={b.carDays}
-              onChange={(e) => onCarDays(Number(e.target.value))}
+              onChange={(e) => t.change({ carDays: Number(e.target.value) })}
               className="range mt-2 w-full"
               aria-valuetext={`${b.carDays} days, ${eur(carCost)}`}
             />

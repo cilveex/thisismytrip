@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from "react";
-import { Check, ExternalLink, Link2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ExternalLink, Link2, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
-import { aptTotal, computeBudget, eur, groupLabel, splitStayWarning } from "@/lib/budget";
+import { aptTotal, choosePlanningArea, computeBudget, eur, groupLabel, splitStayWarning } from "@/lib/budget";
+import { useToast } from "@/lib/toast";
 import {
   NIGHTS,
   areaById,
@@ -19,6 +20,7 @@ import {
   NumField,
   PageHead,
   Score,
+  Segmented,
   SelectField,
   Switch,
   TextArea,
@@ -62,6 +64,7 @@ export default function StayPage() {
 
 function AreaCard({ area }: { area: Area }) {
   const { trip, update } = useTrip();
+  const toast = useToast();
   const [edit, setEdit] = useState(false);
   if (!trip) return null;
   const active = trip.planningArea === area.id;
@@ -110,11 +113,14 @@ function AreaCard({ area }: { area: Area }) {
           {!active && (
             <Button
               variant="secondary"
-              onClick={() =>
+              onClick={() => {
+                const r = choosePlanningArea(trip, trip, area.id);
                 update((s) => {
-                  s.planningArea = area.id;
-                })
-              }
+                  s.planningArea = r.planningArea;
+                  s.familyAptId = r.familyAptId;
+                });
+                if (r.message) toast(r.message);
+              }}
             >
               Plan here
             </Button>
@@ -506,43 +512,5 @@ function AptCard({ apt }: { apt: Apartment }) {
       </div>
       {split && <Warning>{split}</Warning>}
     </article>
-  );
-}
-
-/* ---------------- Segmented control ---------------- */
-
-function Segmented<T extends string>({
-  value,
-  onChange,
-  options,
-  small,
-}: {
-  value: T;
-  onChange: (v: T) => void;
-  options: { value: T; label: string }[];
-  small?: boolean;
-}) {
-  return (
-    <div className="grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-soft p-1">
-      {options.map((o) => {
-        const on = o.value === value;
-        return (
-          <button
-            key={o.value}
-            type="button"
-            aria-pressed={on}
-            onClick={() => onChange(o.value)}
-            className={cn(
-              "inline-flex min-h-11 items-center justify-center gap-1 rounded-full px-2 font-bold",
-              small && "text-sm",
-              on ? "bg-card shadow" : "text-muted",
-            )}
-          >
-            {on && !small && <Check className="h-4 w-4 shrink-0" aria-hidden />}
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
   );
 }

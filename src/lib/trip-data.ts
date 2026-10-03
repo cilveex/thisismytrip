@@ -171,6 +171,10 @@ export function seedState(): TripState {
   };
 }
 
+/** "Tue 8" + "2026-12-08" → "Tue 8 Dec" */
+export const dayName = (label: string, date: string) =>
+  `${label} ${new Date(date + "T12:00:00").toLocaleString("en-GB", { month: "short" })}`;
+
 export function areaById(s: TripState, id: string): Area {
   return s.areas.find((a) => a.id === id) ?? s.areas[0] ?? seedState().areas[0]!;
 }

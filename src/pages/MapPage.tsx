@@ -2,7 +2,8 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { CloudSun, Hand, MapPin } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
-import { computeBudget, eur } from "@/lib/budget";
+import { choosePlanningArea, computeBudget, eur } from "@/lib/budget";
+import { useToast } from "@/lib/toast";
 import { DEPARTURE, NIGHTS, areaById } from "@/lib/trip-data";
 import { isTouch } from "@/lib/device";
 import { Button, LeftPill, Score, Sheet } from "@/components/ui";
@@ -33,6 +34,7 @@ export default function MapPage() {
   const navigate = useNavigate();
   const [openId, setOpenId] = useState<string | null>(null);
   const days = useCountdown();
+  const toast = useToast();
   if (!trip) return null;
 
   const b = computeBudget(trip);
@@ -169,9 +171,12 @@ export default function MapPage() {
               <Button
                 className="h-12 w-full text-lg"
                 onClick={() => {
+                  const r = choosePlanningArea(trip, trip, sel.id);
                   update((s) => {
-                    s.planningArea = sel.id;
+                    s.planningArea = r.planningArea;
+                    s.familyAptId = r.familyAptId;
                   });
+                  if (r.message) toast(r.message);
                   setOpenId(null);
                   navigate("/budget");
                 }}

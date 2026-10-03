@@ -3,6 +3,8 @@ import { AppShell } from "./components/AppShell";
 import MapPage from "./pages/MapPage";
 import StayPage from "./pages/StayPage";
 import BudgetPage from "./pages/BudgetPage";
+import DaysPage from "./pages/DaysPage";
+import NotesPage from "./pages/NotesPage";
 import { Placeholder } from "./pages/Placeholder";
 
 export default function App() {
@@ -13,8 +15,8 @@ export default function App() {
           <Route index element={<MapPage />} />
           <Route path="stay" element={<StayPage />} />
           <Route path="budget" element={<BudgetPage />} />
-          <Route path="days" element={<Placeholder title="Days" step={5} />} />
-          <Route path="notes" element={<Placeholder title="Notes" step={5} />} />
+          <Route path="days" element={<DaysPage />} />
+          <Route path="notes" element={<NotesPage />} />
           <Route path="*" element={<Placeholder title="Not found" />} />
         </Route>
       </Routes>

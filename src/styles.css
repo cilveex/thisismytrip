@@ -338,3 +338,12 @@ dialog.sheet[open] {
   border: 3px solid var(--card);
   box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
 }
+
+/* ---------- Toast (popover, top layer) ---------- */
+.toast {
+  position: fixed;
+  inset: auto 16px auto 16px;
+  top: calc(4rem + env(safe-area-inset-top));
+  max-width: 32rem;
+  margin-inline: auto;
+}

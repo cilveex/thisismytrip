@@ -63,8 +63,8 @@ export function computeBudget(s: TripState, sc: Scenario = {}) {
   return { lines, total, pool, left: pool - total, people, perPerson: people ? total / people : 0 };
 }
 
-/** "€1 234" — whole euros, space as thousands separator, sign dropped (use leftLabel for direction). */
-export const eur = (n: number) => "€" + Math.round(Math.abs(n)).toLocaleString("en-US").replace(/,/g, " ");
+/** "€1 234" — whole euros, no-break space as thousands separator, sign dropped (use leftLabel for direction). */
+export const eur = (n: number) => "€" + Math.round(Math.abs(n)).toLocaleString("en-US").replace(/,/g, "\u00a0");
 
 export const leftLabel = (left: number) => (left >= 0 ? `${eur(left)} left` : `${eur(left)} over`);
 
@@ -112,4 +112,25 @@ export function noCarImpact(s: TripState, areaId = s.planningArea) {
     lateNames: late.length ? listJoin(late) : "the late arrival",
     carSaved: b.carDays * (b.carRate + b.fuelRate),
   };
+}
+
+/**
+ * Change the planning area. Transfers follow where the family stays, so a family place
+ * in use elsewhere is switched off. Pure: returns the new fields and a message for the user.
+ */
+export function choosePlanningArea(
+  s: Pick<TripState, "apartments" | "areas">,
+  cur: { familyAptId: string | null },
+  areaId: string,
+): { planningArea: string; familyAptId: string | null; message: string | null } {
+  const fam = cur.familyAptId ? s.apartments.find((a) => a.id === cur.familyAptId) : undefined;
+  if (fam && fam.area !== areaId) {
+    const area = s.areas.find((a) => a.id === areaId)?.name ?? areaId;
+    return {
+      planningArea: areaId,
+      familyAptId: null,
+      message: `${fam.name} is no longer in the budget because you're planning around ${area}.`,
+    };
+  }
+  return { planningArea: areaId, familyAptId: cur.familyAptId, message: null };
 }

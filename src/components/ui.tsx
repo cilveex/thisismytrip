@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { TriangleAlert, X } from "lucide-react";
+import { useEffect, useId, useLayoutEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { Check, TriangleAlert, X } from "lucide-react";
 import { eur } from "@/lib/budget";
 import type { Walk } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
@@ -164,6 +164,45 @@ export function TextArea({
   );
 }
 
+/** Single-line text that wraps and grows instead of scrolling sideways. Enter doesn't add newlines. */
+export function AutoTextarea({
+  value,
+  onChange,
+  className,
+  ...rest
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className?: string;
+  id?: string;
+  placeholder?: string;
+  "aria-label"?: string;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight + 2}px`;
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      onChange={(e) => onChange(e.target.value.replace(/\n+/g, " "))}
+      onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+      className={cn("block resize-none overflow-hidden", className)}
+      {...rest}
+    />
+  );
+}
+
 export function SelectField<T extends string>({
   label,
   value,
@@ -289,6 +328,45 @@ export function Warning({ children, className }: { children: ReactNode; classNam
       <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-bad" aria-hidden />
       <span>{children}</span>
     </p>
+  );
+}
+
+/* ---------- Segmented control ---------- */
+
+export function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+  small,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  options: { value: T; label: string; icon?: ReactNode }[];
+  small?: boolean;
+}) {
+  return (
+    <div className="grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-soft p-1">
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <button
+            key={o.value}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(o.value)}
+            className={cn(
+              "inline-flex min-h-11 items-center justify-center gap-1 rounded-full px-2 font-bold",
+              small && "text-sm",
+              on ? "bg-card shadow" : "text-muted",
+            )}
+          >
+            {on && !small && !o.icon && <Check className="h-4 w-4 shrink-0" aria-hidden />}
+            {o.icon}
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
