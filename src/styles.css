@@ -1,24 +1,268 @@
 @import "tailwindcss";
 @source not "../lovable-reference";
 
-/* Full design system lands in step 2 — tokens only for now. */
-:root {
-  --bg: #f3f6f4;
-  --ink: #1d2428;
-  --primary: #1f5f8b;
-  --accent: #f2c230;
-  --good: #3e6b48;
-  --bad: #b8432a;
+/* ---------------------------------------------------------------
+   Canary Islands palette. Components only use the semantic tokens
+   (bg, card, ink, primary, accent, good, bad…) so dark mode is a
+   token swap.
+   --------------------------------------------------------------- */
+
+@theme inline {
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-soft: var(--soft);
+  --color-line: var(--line);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-good: var(--good);
+  --color-on-good: var(--on-good);
+  --color-bad: var(--bad);
+  --color-on-bad: var(--on-bad);
+
+  --radius-card: 1.25rem;
 }
+
+:root {
+  color-scheme: light;
+  --bg: #f3f6f4;
+  --card: #ffffff;
+  --ink: #1d2428;
+  --muted: #56636b; /* secondary text, 5.6:1 on bg */
+  --soft: #e4ebe8; /* chips, wells, tracks */
+  --line: #d3dcd8;
+  --primary: #1f5f8b;
+  --on-primary: #ffffff;
+  --accent: #f2c230;
+  --on-accent: #1d2428;
+  --good: #3e6b48;
+  --on-good: #ffffff;
+  --bad: #b8432a;
+  --on-bad: #ffffff;
+  --hero: linear-gradient(160deg, #1f5f8b 0%, #163f5e 100%);
+  --shadow: 0 1px 2px rgb(29 36 40 / 6%), 0 8px 24px -12px rgb(29 36 40 / 18%);
+
+  /* Budget categories (stacked bar) */
+  --cat-1: #1f5f8b;
+  --cat-2: #4f8fbf;
+  --cat-3: #9cc3df;
+  --cat-4: #f2c230;
+  --cat-5: #d98e2b;
+  --cat-6: #3e6b48;
+  --cat-7: #7fa886;
+  --cat-8: #b8432a;
+  --cat-9: #a3adb2;
+}
+
+/* Dark tokens appear twice: once for the system setting, once for the manual toggle. Keep them in sync. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #11181c;
+    --card: #1a2328;
     --ink: #e8eef0;
+    --muted: #a3b1b8;
+    --soft: #253139;
+    --line: #2f3c44;
+    --primary: #6fa8d6;
+    --on-primary: #0e1a22;
+    --good: #82bb8e;
+    --on-good: #0e1a12;
+    --bad: #e8866b;
+    --on-bad: #22100b;
+    --hero: linear-gradient(160deg, #1d4a6b 0%, #12293a 100%);
+    --shadow: 0 1px 2px rgb(0 0 0 / 40%);
+    --cat-1: #6fa8d6;
+    --cat-9: #6b777d;
   }
 }
-body {
-  margin: 0;
-  background: var(--bg);
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #11181c;
+  --card: #1a2328;
+  --ink: #e8eef0;
+  --muted: #a3b1b8;
+  --soft: #253139;
+  --line: #2f3c44;
+  --primary: #6fa8d6;
+  --on-primary: #0e1a22;
+  --good: #82bb8e;
+  --on-good: #0e1a12;
+  --bad: #e8866b;
+  --on-bad: #22100b;
+  --hero: linear-gradient(160deg, #1d4a6b 0%, #12293a 100%);
+  --shadow: 0 1px 2px rgb(0 0 0 / 40%);
+  --cat-1: #6fa8d6;
+  --cat-9: #6b777d;
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+  html {
+    font-size: 17px;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    line-height: 1.45;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+  h1,
+  h2,
+  h3,
+  .font-display {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  :focus-visible {
+    outline: 3px solid var(--primary);
+    outline-offset: 2px;
+  }
+  /* Number inputs: no spinners — they're tiny and fiddly on touch */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@utility surface {
+  background-color: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow);
+}
+
+@utility bg-hero {
+  background-image: var(--hero);
+  color: #fff;
+}
+
+/* 16px+ font stops iOS zooming into inputs on focus */
+@utility field {
+  min-height: 44px;
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--line);
+  background-color: var(--bg);
   color: var(--ink);
-  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+/* ---------- Bottom sheet (native <dialog>) ---------- */
+dialog.sheet {
+  margin: auto auto 0;
+  width: 100%;
+  max-width: 40rem;
+  max-height: 88dvh;
+  padding: 0;
+  border: 0;
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: var(--card);
+  color: var(--ink);
+  overscroll-behavior: contain;
+}
+dialog.sheet::backdrop {
+  background: rgb(10 16 20 / 55%);
+}
+dialog.sheet[open] {
+  animation: sheet-up 0.22s ease-out;
+}
+@media (min-width: 768px) {
+  dialog.sheet {
+    margin: auto;
+    border-radius: 1.5rem;
+  }
+}
+@keyframes sheet-up {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+}
+
+/* ---------- Leaflet ---------- */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--soft);
+}
+.leaflet-control-zoom a {
+  width: 44px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  font-size: 22px !important;
+}
+.leaflet-tooltip {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+  }
+}
+:root[data-theme="dark"] .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}
+
+.pin {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  font-weight: 800;
+  font-family: var(--font-display);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
+}
+.pin-area {
+  background: #f2c230;
+  color: #1d2428;
+  width: 40px;
+  height: 40px;
+  font-size: 17px;
+}
+.pin-area.active {
+  outline: 4px solid #1f5f8b;
+  outline-offset: 1px;
+}
+.pin-sight {
+  background: #1f5f8b;
+  width: 18px;
+  height: 18px;
+}
+.pin-airport,
+.pin-peak {
+  background: #1d2428;
+  color: #f3f6f4;
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
 }
