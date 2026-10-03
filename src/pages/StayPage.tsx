@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { ExternalLink, Link2, Plus, Sparkles, Trash2 } from "lucide-react";
+import { ExternalLink, Link2, Plus, Trash2 } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
 import { aptTotal, choosePlanningArea, computeBudget, eur, groupLabel, splitStayWarning } from "@/lib/budget";
 import { useToast } from "@/lib/toast";
@@ -207,29 +207,12 @@ interface Draft {
   who: Who;
   area: string;
   total: number | null;
-  floor: string;
-  notes: string;
 }
-const emptyDraft: Draft = { url: "", name: "", who: "family", area: "", total: null, floor: "", notes: "" };
-
-/** Shape returned by /api/extract (step 6). */
-interface Extracted {
-  name?: string;
-  area?: string | null;
-  pricePerNight?: number | null;
-  total?: number | null;
-  nights?: number | null;
-  bedrooms?: number | null;
-  sleeps?: number | null;
-  floor?: string;
-  notes?: string;
-}
+const emptyDraft: Draft = { url: "", name: "", who: "family", area: "", total: null };
 
 function AddPlace() {
   const { trip, update } = useTrip();
   const [f, setF] = useState<Draft>(emptyDraft);
-  const [text, setText] = useState("");
-  const [reading, setReading] = useState(false);
   const [msg, setMsg] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
   if (!trip) return null;
 
@@ -239,38 +222,6 @@ function AddPlace() {
     const name = nameFromLink(url);
     const area = guessArea(url, trip.areas);
     setF((p) => ({ ...p, url, name: name || p.name, area: area ?? p.area }));
-  };
-
-  const readText = async () => {
-    setReading(true);
-    setMsg(null);
-    try {
-      const res = await fetch("/api/extract", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, url: f.url }),
-      });
-      if (res.status === 404) throw new Error("The listing reader isn't set up yet.");
-      const data = (await res.json().catch(() => ({}))) as Extracted & { error?: string };
-      if (!res.ok) throw new Error(data.error || "Couldn't read the listing.");
-      const total = data.total ?? (data.pricePerNight ? Math.round(data.pricePerNight * NIGHTS) : null);
-      const size = [data.bedrooms ? `${data.bedrooms} bedrooms` : "", data.sleeps ? `sleeps ${data.sleeps}` : ""]
-        .filter(Boolean)
-        .join(", ");
-      setF((p) => ({
-        ...p,
-        name: data.name || p.name,
-        area: (data.area && trip.areas.some((a) => a.id === data.area) ? data.area : null) ?? guessArea(text, trip.areas) ?? p.area,
-        total: total ?? p.total,
-        floor: data.floor || p.floor,
-        notes: [size, data.notes].filter(Boolean).join("\n") || p.notes,
-      }));
-      setMsg({ kind: "ok", text: "Filled in from the listing — check the fields, then save." });
-    } catch (e) {
-      setMsg({ kind: "err", text: e instanceof Error ? e.message : "Couldn't read the listing." });
-    } finally {
-      setReading(false);
-    }
   };
 
   const canSave = !!f.area && !!(f.name.trim() || f.url.trim());
@@ -286,8 +237,8 @@ function AddPlace() {
       area: f.area,
       total: f.total,
       walkMin: null,
-      floor: f.floor,
-      notes: f.notes,
+      floor: "",
+      notes: "",
       status: "idea",
     };
     update((s) => {
@@ -295,7 +246,6 @@ function AddPlace() {
     });
     setMsg({ kind: "ok", text: `Added “${apt.name}” for ${f.who === "family" ? "the family" : "the couple"}.` });
     setF({ ...emptyDraft, who: f.who });
-    setText("");
   };
 
   return (
@@ -346,39 +296,6 @@ function AddPlace() {
           Leave empty to use the area estimate (
           {eur((f.who === "family" ? areaById(trip, f.area).family : areaById(trip, f.area).couple) * NIGHTS)}).
         </p>
-      )}
-
-      <details className="rounded-xl bg-soft p-3">
-        <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-bold">
-          <Sparkles className="h-4 w-4" aria-hidden /> Paste the listing page text (optional)
-        </summary>
-        <p className="mt-1 text-sm text-muted">
-          Not working yet — the listing reader arrives in a later update. When it's ready, it fills in the name,
-          area, price, floor and lift info for you.
-        </p>
-        <TextArea
-          className="mt-3"
-          label="Listing page text"
-          rows={5}
-          value={text}
-          onChange={setText}
-          placeholder="On the listing page: select all, copy, and paste here"
-        />
-        <Button
-          variant="secondary"
-          className="mt-3 bg-card"
-          disabled={reading || text.trim().length < 40}
-          onClick={readText}
-        >
-          <Sparkles className="h-4 w-4" aria-hidden /> {reading ? "Reading…" : "Fill in from text"}
-        </Button>
-      </details>
-
-      {(f.floor || f.notes) && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TextField label="Floor / lift / stairs" value={f.floor} onChange={(v) => set({ floor: v })} />
-          <TextArea label="Notes" rows={3} value={f.notes} onChange={(v) => set({ notes: v })} />
-        </div>
       )}
 
       <div className="flex flex-wrap items-center gap-3">

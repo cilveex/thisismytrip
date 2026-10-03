@@ -15,7 +15,7 @@ npm run dev            # http://localhost:5173
 
 Other scripts: `npm run build` (typecheck + production build), `npm run preview`, `npm run lint`.
 
-Without the Supabase variables the app still runs, but saves only to this browser's localStorage (sync status shows `local`).
+Without the Supabase variables the app still runs, but saves only to this browser's localStorage (the sync status says "This device only").
 
 ## Environment variables
 
@@ -23,9 +23,8 @@ Without the Supabase variables the app still runs, but saves only to this browse
 | --- | --- | --- |
 | `VITE_SUPABASE_URL` | Browser | Supabase → Project settings → API → Project URL |
 | `VITE_SUPABASE_ANON_KEY` | Browser | Supabase → Project settings → API → anon / publishable key |
-| `ANTHROPIC_API_KEY` | Server only (`api/extract.ts`) | console.anthropic.com → API keys |
 
-`VITE_` variables are bundled into the client and are public by design. `ANTHROPIC_API_KEY` has no `VITE_` prefix and must never get one. Never commit `.env`.
+Both are bundled into the client and are public by design (access is limited by the row-level security policies in the migration). Never commit `.env` anyway.
 
 ## Supabase setup
 

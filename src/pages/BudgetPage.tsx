@@ -137,7 +137,7 @@ function TryStatus({ t }: { t: Try }) {
       </div>
     );
   return (
-    <div className="mb-4 space-y-2" aria-live="polite">
+    <div className="mb-1 space-y-2" aria-live="polite">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-extrabold tracking-wide text-muted uppercase">Trying</span>
         <LeftPill left={t.trying.left} className="text-lg" />
@@ -145,12 +145,12 @@ function TryStatus({ t }: { t: Try }) {
       <p className="font-bold text-muted">
         Saved plan: <span className={t.saved.left >= 0 ? "text-good" : "text-bad"}>{leftLabel(t.saved.left)}</span>
       </p>
-      <div className="flex flex-wrap gap-2">
-        <Button onClick={t.apply}>
-          <Upload className="h-4 w-4" aria-hidden /> Apply to shared plan
+      <div className="flex gap-2">
+        <Button onClick={t.apply} className="min-w-0 flex-1 px-4 whitespace-nowrap">
+          <Upload className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden /> Apply to shared plan
         </Button>
-        <Button variant="ghost" onClick={t.reset}>
-          <RotateCcw className="h-4 w-4" aria-hidden /> Reset
+        <Button variant="secondary" onClick={t.reset} className="shrink-0 px-4">
+          <RotateCcw className="hidden h-4 w-4 sm:block" aria-hidden /> Reset
         </Button>
       </div>
     </div>
