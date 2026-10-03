@@ -38,10 +38,17 @@ const en = {
   "flights.there": "There",
   "flights.back": "Back",
   "flights.meetAt": "Meet at {airport} airport",
+  "meet.RIX": "Meet at Riga airport",
+  "meet.TFS": "Meet at Tenerife South airport",
+  "meet.TFN": "Meet at Tenerife North airport",
   "flights.leave": "Leave the apartment",
   "flights.departs": "Departs",
   "flights.lands": "Lands",
   "flights.landsIn": "Lands in {airport}",
+  "landsIn.RIX": "Lands in Riga",
+  "landsIn.TFS": "Lands in Tenerife",
+  "landsIn.TFN": "Lands in Tenerife",
+  "flights.otherFlights": "On a different flight",
   "flights.notYet": "The times will appear here once the flights are booked.",
   "flights.addCal": "Add to calendar",
   "flights.calHint": "Downloads a calendar file with both flights and the meeting times.",
@@ -52,7 +59,6 @@ const en = {
   "airport.RIX": "Riga",
   "airport.TFS": "Tenerife South",
   "airport.TFN": "Tenerife North",
-  "cal.meet": "Meet at {airport} airport",
   "cal.flight": "Flight {from} → {to}",
   "cal.leave": "Leave the apartment for the airport",
   "cal.file": "tenerife-flights.ics",
@@ -77,7 +83,8 @@ const en = {
 
   "budget.title": "Budget",
   "budget.perPerson": "per person",
-  "budget.total": "Total for {people}: {amount}",
+  "budget.totalFor_one": "Total for {n} person: {amount}",
+  "budget.totalFor_other": "Total for {n} people: {amount}",
   "budget.pool": "Each of us puts in {amount}.",
   "budget.confirmed": "Confirmed",
   "budget.estimate": "Estimate",
@@ -102,8 +109,113 @@ const en = {
 
 export type Key = keyof typeof en;
 
-/** Latvian: add strings here. Missing keys show the English text. */
-const lv: Partial<Record<Key, string>> = {};
+/**
+ * Latvian. Written for older readers: plain words, polite plural "jūs" forms where we address
+ * the reader, and Latvian grammar handled by whole phrases rather than gluing words together.
+ * Missing keys would show the English text.
+ *
+ * Plurals: Latvian uses the "_one" form for numbers ending in 1 except 11 (1, 21, 31 diena)
+ * and "_other" for everything else (2, 10, 11, 66 dienas).
+ */
+const lv: Partial<Record<Key, string>> = {
+  "skip": "Pāriet uz saturu",
+  "nav.label": "Sadaļas",
+  "nav.flights": "Lidojumi",
+  "nav.stay": "Kur dzīvosim",
+  "nav.days": "Dienas",
+  "nav.budget": "Izmaksas",
+  "nav.info": "Der zināt",
+  "lang.label": "Valoda",
+
+  "status.loading": "Ielādē…",
+  "status.error": "Neizdevās ielādēt ceļojuma informāciju. Pārbaudiet interneta savienojumu un mēģiniet vēlreiz.",
+  "status.empty": "Ceļojuma informācija šeit parādīsies pavisam drīz.",
+
+  "hero.kicker": "Mūsu ģimenes ceļojums",
+  "hero.title": "Tenerife",
+  "hero.days_one": "Vēl {n} diena",
+  "hero.days_other": "Vēl {n} dienas",
+  "hero.today": "Šodien lidojam!",
+  "hero.during": "Esam Tenerifē!",
+  "hero.after": "Esam atpakaļ mājās!",
+  "hero.people_one": "{n} cilvēks",
+  "hero.people_other": "{n} cilvēki",
+  "hero.nights_one": "{n} nakts",
+  "hero.nights_other": "{n} naktis",
+
+  "flights.title": "Lidojumi",
+  "flights.tzNote": "Tenerifē pulkstenis rāda par 2 stundām mazāk nekā Rīgā. Visi laiki zemāk ir norādīti pēc vietējā pulksteņa.",
+  "flights.there": "Turp",
+  "flights.back": "Atpakaļ",
+  "flights.meetAt": "Tikšanās lidostā {airport}",
+  "meet.RIX": "Tikšanās Rīgas lidostā",
+  "meet.TFS": "Tikšanās Tenerifes dienvidu lidostā",
+  "meet.TFN": "Tikšanās Tenerifes ziemeļu lidostā",
+  "flights.leave": "Izbraucam no dzīvokļa",
+  "flights.departs": "Izlidošana",
+  "flights.lands": "Nolaišanās",
+  "flights.landsIn": "Nolaišanās: {airport}",
+  "landsIn.RIX": "Nolaišanās Rīgā",
+  "landsIn.TFS": "Nolaišanās Tenerifē",
+  "landsIn.TFN": "Nolaišanās Tenerifē",
+  "flights.otherFlights": "Lido ar citu reisu",
+  "flights.notYet": "Laiki šeit parādīsies, kad biļetes būs nopirktas.",
+  "flights.addCal": "Pievienot kalendāram",
+  "flights.calHint": "Lejupielādē kalendāra failu ar abiem lidojumiem un tikšanās laikiem.",
+  "tz.RIX": "Rīgas laiks",
+  "tz.TFS": "Tenerifes laiks",
+  "tz.TFN": "Tenerifes laiks",
+  "tz.other": "vietējais laiks",
+  "airport.RIX": "Rīga",
+  "airport.TFS": "Tenerife (dienvidi)",
+  "airport.TFN": "Tenerife (ziemeļi)",
+  "cal.flight": "Lidojums {from} → {to}",
+  "cal.leave": "Izbraucam no dzīvokļa uz lidostu",
+  "cal.file": "tenerife-lidojumi.ics",
+
+  "stay.title": "Kur dzīvosim",
+  "stay.considering": "Vietas, ko apsveram",
+  "stay.notBooked": "Vēl nekas nav rezervēts. Šīs ir vietas, ko pašlaik apskatām.",
+  "stay.none": "Naktsmītnes šeit pievienosim drīzumā.",
+  "stay.booked": "Rezervēts",
+  "stay.maybe": "Apsveram",
+  "stay.who": "Šeit dzīvos",
+  "stay.address": "Adrese",
+  "stay.maps": "Atvērt Google Maps",
+  "stay.listing": "Skatīt sludinājumu",
+  "stay.walk_one": "{n} minūtes gājiens līdz otram dzīvoklim",
+  "stay.walk_other": "{n} minūšu gājiens līdz otram dzīvoklim",
+  "stay.mapLabel": "Karte ar vietām, kur dzīvosim",
+  "stay.mapHint": "Lai pārvietotu karti, izmantojiet divus pirkstus.",
+
+  "days.title": "Pa dienām",
+  "days.travel": "Lidojuma diena",
+
+  "budget.title": "Izmaksas",
+  "budget.perPerson": "katram",
+  "budget.totalFor_one": "Kopā {n} cilvēkam: {amount}",
+  "budget.totalFor_other": "Kopā {n} cilvēkiem: {amount}",
+  "budget.pool": "Katrs iemaksā {amount}.",
+  "budget.confirmed": "Precīzi",
+  "budget.estimate": "Aptuveni",
+  "budget.note": "Aptuvenās summas vēl var mainīties.",
+  "budget.breakdown": "Kam paredzēta nauda",
+  "cat.flights": "Lidojumi",
+  "cat.family": "Ģimenes dzīvoklis",
+  "cat.couple": "Dzīvoklis: {names}",
+  "cat.car": "Mašīnas noma un degviela",
+  "cat.transfers": "Taksometri uz lidostu un atpakaļ",
+  "cat.food": "Ēdiens",
+  "cat.activities": "Ekskursijas un biļetes",
+  "cat.mobility": "Ratiņkrēsls vai elektriskais skūteris",
+  "cat.buffer": "Rezerve neparedzētiem tēriņiem",
+
+  "info.title": "Der zināt",
+
+  "footer.planner": "Plānotājs",
+  "footer.updated": "Atjaunināts: {date}",
+  "and": "un",
+};
 
 const dict: Record<Lang, Partial<Record<Key, string>>> = { en, lv };
 

@@ -39,7 +39,9 @@ function Page() {
     return () => document.documentElement.classList.remove("public-page");
   }, []);
   const { t } = useI18n();
-  const sections = SECTIONS.filter((s) => s.id !== "info" || !!trip?.goodToKnow.length);
+  const sections = SECTIONS.filter(
+    (s) => (s.id !== "info" || !!trip?.goodToKnow.length) && (s.id !== "budget" || !!trip?.budget),
+  );
 
   return (
     <div className="min-h-dvh text-[1.125rem] leading-relaxed">
@@ -172,25 +174,39 @@ function Section({ id, title, icon, children }: { id: string; title: string; ico
 
 const hhmm = (dt: string) => dt.slice(11, 16);
 
+/** "otrdiena, 8. decembris" → "Otrdiena, 8. decembris" (first letter only) */
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 function useFmt() {
   const { t, locale } = useI18n();
+  /** Whole phrase per airport (so Latvian can use the right case), else the generic one */
+  const phrase = (prefix: "meet" | "landsIn", code: string, generic: "flights.meetAt" | "flights.landsIn") => {
+    const k = `${prefix}.${code.toUpperCase()}`;
+    return isKey(k) ? t(k) : t(generic, { airport: code });
+  };
   return {
+    meet: (code: string) => phrase("meet", code, "flights.meetAt"),
+    landsIn: (code: string) => phrase("landsIn", code, "flights.landsIn"),
     /** "Tuesday 8 December" in the page language */
     date: (dt: string) =>
-      new Date(dt.slice(0, 10) + "T12:00:00Z").toLocaleDateString(locale, {
-        timeZone: "UTC",
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-      }),
+      cap(
+        new Date(dt.slice(0, 10) + "T12:00:00Z").toLocaleDateString(locale, {
+          timeZone: "UTC",
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        }),
+      ),
     /** "Tue 8 Dec" */
     short: (dt: string) =>
-      new Date(dt.slice(0, 10) + "T12:00:00Z").toLocaleDateString(locale, {
-        timeZone: "UTC",
-        weekday: "short",
-        day: "numeric",
-        month: "short",
-      }),
+      cap(
+        new Date(dt.slice(0, 10) + "T12:00:00Z").toLocaleDateString(locale, {
+          timeZone: "UTC",
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        }),
+      ),
     tz: (code: string) => {
       const k = `tz.${code.toUpperCase()}`;
       return isKey(k) ? t(k) : t("tz.other");
@@ -262,10 +278,10 @@ function Flights({ trip }: { trip: PublicTrip }) {
   const leave = leaveAt(back);
 
   const events: CalEvent[] = [
-    { id: "meet-out", title: t("cal.meet", { airport: f.airport(out.from) }), start: outMeet, end: out.depart, airport: out.from, location: f.airport(out.from) },
+    { id: "meet-out", title: f.meet(out.from), start: outMeet, end: out.depart, airport: out.from, location: f.airport(out.from) },
     { id: "flight-out", title: `${t("cal.flight", { from: f.airport(out.from), to: f.airport(out.to) })} ${out.number}`.trim(), start: out.depart, end: shiftZone(out.depart, out.from, out.arrive, out.to), airport: out.from },
     { id: "leave", title: t("cal.leave"), start: leave, end: backMeet, airport: back.from },
-    { id: "meet-back", title: t("cal.meet", { airport: f.airport(back.from) }), start: backMeet, end: back.depart, airport: back.from, location: f.airport(back.from) },
+    { id: "meet-back", title: f.meet(back.from), start: backMeet, end: back.depart, airport: back.from, location: f.airport(back.from) },
     { id: "flight-back", title: `${t("cal.flight", { from: f.airport(back.from), to: f.airport(back.to) })} ${back.number}`.trim(), start: back.depart, end: shiftZone(back.depart, back.from, back.arrive, back.to), airport: back.from },
   ];
   const anyTime = hasTime(out.depart) || hasTime(back.depart);
@@ -280,7 +296,7 @@ function Flights({ trip }: { trip: PublicTrip }) {
         <FlightCard title={t("flights.there")} f={out}>
           {hasTime(out.depart) ? (
             <>
-              <BigTime label={t("flights.meetAt", { airport: f.airport(out.from) })} dt={outMeet} airport={out.from} />
+              <BigTime label={f.meet(out.from)} dt={outMeet} airport={out.from} />
               <ul className="divide-y">
                 <TimeRow icon={<PlaneTakeoff className="h-6 w-6" />} label={t("flights.departs")} dt={out.depart} airport={out.from} />
                 <TimeRow icon={<PlaneLanding className="h-6 w-6" />} label={t("flights.lands")} dt={out.arrive} airport={out.to} />
@@ -289,15 +305,16 @@ function Flights({ trip }: { trip: PublicTrip }) {
           ) : (
             <p className="text-muted">{t("flights.notYet")}</p>
           )}
+          <FlightNotes trip={trip} />
         </FlightCard>
         <FlightCard title={t("flights.back")} f={back}>
           {hasTime(back.depart) ? (
             <>
               <BigTime label={t("flights.leave")} dt={leave} airport={back.from} />
               <ul className="divide-y">
-                <TimeRow icon={<Users className="h-6 w-6" />} label={t("flights.meetAt", { airport: f.airport(back.from) })} dt={backMeet} airport={back.from} />
+                <TimeRow icon={<Users className="h-6 w-6" />} label={f.meet(back.from)} dt={backMeet} airport={back.from} />
                 <TimeRow icon={<PlaneTakeoff className="h-6 w-6" />} label={t("flights.departs")} dt={back.depart} airport={back.from} />
-                <TimeRow icon={<PlaneLanding className="h-6 w-6" />} label={t("flights.landsIn", { airport: f.airport(back.to) })} dt={back.arrive} airport={back.to} />
+                <TimeRow icon={<PlaneLanding className="h-6 w-6" />} label={f.landsIn(back.to)} dt={back.arrive} airport={back.to} />
               </ul>
             </>
           ) : (
@@ -318,6 +335,27 @@ function Flights({ trip }: { trip: PublicTrip }) {
         </div>
       )}
     </Section>
+  );
+}
+
+function FlightNotes({ trip }: { trip: PublicTrip }) {
+  const { t, lang } = useI18n();
+  const notes = (trip.flightNotes ?? []).map((n) => ({ ...n, text: (lang === "lv" ? n.lv : n.en) || n.en || n.lv })).filter((n) => n.text.trim());
+  if (!notes.length) return null;
+  return (
+    <div className="rounded-2xl border-2 border-dashed p-4">
+      <p className="mb-2 flex items-center gap-2 font-extrabold">
+        <Info className="h-5 w-5 shrink-0 text-primary" aria-hidden /> {t("flights.otherFlights")}
+      </p>
+      <ul className="space-y-2">
+        {notes.map((n, i) => (
+          <li key={i}>
+            {n.name && <strong>{n.name}: </strong>}
+            {n.text}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -494,7 +532,7 @@ function Budget({ trip }: { trip: PublicTrip }) {
       <div className="surface p-6 md:p-8">
         <p className="font-display text-6xl font-extrabold tabular-nums md:text-7xl">{eur(b.perPerson)}</p>
         <p className="text-2xl font-bold">{t("budget.perPerson")}</p>
-        <p className="mt-4 text-xl">{t("budget.total", { people: tn("hero.people", b.people), amount: eur(b.total) })}</p>
+        <p className="mt-4 text-xl">{tn("budget.totalFor", b.people, { amount: eur(b.total) })}</p>
         <p className="text-xl">{t("budget.pool", { amount: eur(b.poolPerPerson) })}</p>
       </div>
       <h3 className="mt-8 mb-3 text-2xl font-extrabold">{t("budget.breakdown")}</h3>

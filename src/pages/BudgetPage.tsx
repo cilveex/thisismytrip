@@ -77,6 +77,22 @@ export default function BudgetPage() {
     <div className="pb-24 lg:pb-0">
       <PageHead title="Budget" sub={`Shared pool for ${t.saved.people} travellers, ${NIGHTS} nights.`} />
       <InlineNotice where="budget" className="mb-6" />
+      <div className="surface mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2">
+        <Switch
+          label="Show budget to family"
+          checked={trip.showBudgetToFamily}
+          onChange={(on) =>
+            update((s) => {
+              s.showBudgetToFamily = on;
+            })
+          }
+        />
+        <span className="text-sm text-muted">
+          {trip.showBudgetToFamily
+            ? "The family page shows the saved plan: per person, total and each category."
+            : "Hidden from the family page."}
+        </span>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start">
         <div className="min-w-0 space-y-6">

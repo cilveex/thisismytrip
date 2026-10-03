@@ -40,6 +40,11 @@ export function tripSummary(s: TripState): string {
     flight("There", s.flights.outbound);
     flight("Home", s.flights.return);
     if (leaveAt(s.flights.return)) add(`Leave the apartment ${formatLocal(leaveAt(s.flights.return))}`);
+    for (const n of s.flights.notes) {
+      const who = s.travellers.find((x) => x.id === n.travellerId)?.name;
+      const text = clean(n.en || n.lv);
+      if (text) add(`${who ? `${clean(who)}: ` : ""}${text}`);
+    }
     add("");
   }
 

@@ -6,13 +6,16 @@ export const LOCAL_PUBLIC_KEY = "tenerife-trip-public-local";
 
 /**
  * What the family page can see. Built from the private trip by the planner and saved to
- * the public row. It includes a budget summary of the saved plan (never the sandbox), but never
- * notes, apartment prices on the places, estimate settings, unpublished places or traveller notes.
+ * the public row. A budget summary of the saved plan (never the sandbox) is included only when
+ * "Show budget to family" is on. Never notes, place prices, estimate settings, unpublished places
+ * or traveller notes.
  */
 export interface PublicTrip {
   v: 1;
   updatedAt: string;
-  flights: Flights;
+  flights: Omit<Flights, "notes">;
+  /** Travellers on a different flight */
+  flightNotes?: { name: string; lv: string; en: string }[];
   travellers: { name: string; apt: Who }[];
   stays: {
     id: string;
@@ -60,7 +63,10 @@ export function toPublic(t: TripState): PublicTrip {
   return {
     v: 1,
     updatedAt: new Date().toISOString(),
-    flights: t.flights,
+    flights: { outbound: t.flights.outbound, return: t.flights.return },
+    flightNotes: t.flights.notes
+      .filter((n) => n.lv.trim() || n.en.trim())
+      .map((n) => ({ name: t.travellers.find((x) => x.id === n.travellerId)?.name ?? "", lv: n.lv, en: n.en })),
     travellers: t.travellers.map(({ name, apt }) => ({ name, apt })),
     stays: t.apartments
       .filter((a) => a.showToFamily && a.status !== "no")
@@ -78,7 +84,7 @@ export function toPublic(t: TripState): PublicTrip {
       })),
     days: t.days.map(({ date, label, lv, en }) => ({ date, label, lv, en })),
     goodToKnow: t.goodToKnow.filter((g) => g.lv.trim() || g.en.trim()),
-    budget: publicBudget(t),
+    ...(t.showBudgetToFamily ? { budget: publicBudget(t) } : {}),
   };
 }
 

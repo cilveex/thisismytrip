@@ -1,8 +1,8 @@
 import { useId } from "react";
 import { Clock, Plane, Plus, Trash2 } from "lucide-react";
 import { formatLocal, hasTime, leaveAt, meetAt } from "@/lib/flights";
-import { uid, type Flight, type Flights, type GoodToKnow } from "@/lib/trip-data";
-import { Button, NumField, TextArea, TextField } from "@/components/ui";
+import { uid, type Flight, type FlightNote, type Flights, type GoodToKnow, type Traveller } from "@/lib/trip-data";
+import { Button, NumField, SelectField, TextArea, TextField } from "@/components/ui";
 
 type Patch<T> = (p: Partial<T>) => void;
 
@@ -95,7 +95,15 @@ function FlightCard({
   );
 }
 
-export function FlightsSection({ flights, onChange }: { flights: Flights; onChange: (f: Flights) => void }) {
+export function FlightsSection({
+  flights,
+  travellers,
+  onChange,
+}: {
+  flights: Flights;
+  travellers: Traveller[];
+  onChange: (f: Flights) => void;
+}) {
   const set = (dir: "outbound" | "return") => (p: Partial<Flight>) =>
     onChange({ ...flights, [dir]: { ...flights[dir], ...p } });
   return (
@@ -117,6 +125,11 @@ export function FlightsSection({ flights, onChange }: { flights: Flights; onChan
           }}
         />
       </div>
+      <FlightNotes
+        notes={flights.notes}
+        travellers={travellers}
+        onChange={(notes) => onChange({ ...flights, notes })}
+      />
     </section>
   );
 }
@@ -164,5 +177,69 @@ export function GoodToKnowSection({
         <Plus className="h-5 w-5" aria-hidden /> Add tip
       </Button>
     </section>
+  );
+}
+
+function FlightNotes({
+  notes,
+  travellers,
+  onChange,
+}: {
+  notes: FlightNote[];
+  travellers: Traveller[];
+  onChange: (n: FlightNote[]) => void;
+}) {
+  const set = (id: string, p: Partial<FlightNote>) => onChange(notes.map((n) => (n.id === id ? { ...n, ...p } : n)));
+  const options = travellers.map((t) => ({ value: t.id, label: t.name || "Unnamed" }));
+  return (
+    <div className="rounded-xl border p-3">
+      <h3 className="text-lg font-extrabold">Different flights</h3>
+      <p className="mb-2 text-sm text-muted">
+        For anyone not on the main flight. Shown under “There” on the family page, e.g. “Lera arrives Wed 9 Dec,
+        flight BT XXX at 14:20 Tenerife time”.
+      </p>
+      <ul className="divide-y">
+        {notes.map((n) => (
+          <li key={n.id} className="space-y-3 py-3">
+            <div className="flex items-end gap-2">
+              <SelectField
+                className="flex-1"
+                label="Traveller"
+                value={n.travellerId}
+                onChange={(travellerId) => set(n.id, { travellerId })}
+                options={options}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if ((n.lv || n.en) && !window.confirm("Delete this flight note?")) return;
+                  onChange(notes.filter((x) => x.id !== n.id));
+                }}
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-muted hover:bg-soft hover:text-bad"
+                aria-label="Delete flight note"
+              >
+                <Trash2 className="h-5 w-5" aria-hidden />
+              </button>
+            </div>
+            <div className="grid gap-3 md:grid-cols-2">
+              <TextArea label="Latviski" rows={2} value={n.lv} onChange={(lv) => set(n.id, { lv })} />
+              <TextArea label="English" rows={2} value={n.en} onChange={(en) => set(n.id, { en })} />
+            </div>
+          </li>
+        ))}
+      </ul>
+      <Button
+        variant="secondary"
+        className="mt-1"
+        disabled={!travellers.length}
+        onClick={() => {
+          // Default to someone whose note mentions arriving, else the first traveller
+          const t = travellers.find((x) => /arriv/i.test(x.note) && !notes.some((n) => n.travellerId === x.id)) ?? travellers[0]!;
+          onChange([...notes, { id: uid(), travellerId: t.id, lv: "", en: "" }]);
+        }}
+      >
+        <Plus className="h-5 w-5" aria-hidden /> Add a different flight
+      </Button>
+    </div>
   );
 }

@@ -46,6 +46,7 @@ export default function InfoPage() {
 
       <FlightsSection
         flights={trip.flights}
+        travellers={trip.travellers}
         onChange={(flights) =>
           update((s) => {
             s.flights = flights;

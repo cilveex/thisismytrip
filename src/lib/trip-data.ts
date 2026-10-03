@@ -69,10 +69,19 @@ export interface Flight {
   meetBeforeMin: number;
 }
 
+/** A traveller on a different flight, e.g. arriving a day later. Shown under the "There" card. */
+export interface FlightNote {
+  id: string;
+  travellerId: string;
+  lv: string;
+  en: string;
+}
+
 export interface Flights {
   outbound: Flight;
   /** transferMin: apartment → airport, so we can say when to leave */
   return: Flight & { transferMin: number };
+  notes: FlightNote[];
 }
 
 export interface GoodToKnow {
@@ -116,6 +125,8 @@ export interface TripState {
   notes: string;
   flights: Flights;
   goodToKnow: GoodToKnow[];
+  /** Include the budget summary on the public family page */
+  showBudgetToFamily: boolean;
 }
 
 export const NIGHTS = 7;
@@ -162,6 +173,7 @@ const blankFlight = (from: string, to: string): Flight => ({
 export const defaultFlights = (): Flights => ({
   outbound: blankFlight("RIX", "TFS"),
   return: { ...blankFlight("TFS", "RIX"), transferMin: 30 },
+  notes: [],
 });
 
 const dayDefaults = (days: Omit<Day, "lv" | "en">[]): Day[] =>
@@ -231,6 +243,7 @@ export function seedState(): TripState {
     ].join("\n"),
     flights: defaultFlights(),
     goodToKnow: [],
+    showBudgetToFamily: false,
   };
 }
 
@@ -308,7 +321,9 @@ export function normalizeState(raw: Partial<TripState> | null | undefined): Trip
     flights: {
       outbound: { ...seed.flights.outbound, ...(fl.outbound ?? {}) },
       return: { ...seed.flights.return, ...(fl.return ?? {}) },
+      notes: fl.notes ?? [],
     },
     goodToKnow: raw.goodToKnow ?? [],
+    showBudgetToFamily: raw.showBudgetToFamily ?? false,
   };
 }
