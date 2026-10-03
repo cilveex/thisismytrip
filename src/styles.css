@@ -358,3 +358,18 @@ dialog.sheet[open] {
   border: 3px solid #fff;
   box-shadow: 0 2px 6px rgb(0 0 0 / 35%);
 }
+
+/* Public page: numbered stay pins */
+.pin-stay {
+  width: 44px;
+  height: 44px;
+  background: #1f5f8b;
+  color: #fff;
+  font-size: 20px;
+  border: 3px solid #fff;
+}
+
+/* Public family page: larger base type (set while the page is open) */
+html.public-page {
+  font-size: 18px;
+}

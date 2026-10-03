@@ -4,21 +4,14 @@ import { CloudSun, Hand, MapPin } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
 import { choosePlanningArea, computeBudget, eur } from "@/lib/budget";
 import { useImportant } from "@/lib/toast";
-import { DEPARTURE, NIGHTS, areaById } from "@/lib/trip-data";
+import { NIGHTS, areaById } from "@/lib/trip-data";
+import { daysUntilDeparture } from "@/lib/dates";
 import { isTouch } from "@/lib/device";
 import { Button, LeftPill, Score, Sheet } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 // Leaflet is ~150 kB; load it with the map, not with the app shell.
 const TenerifeMap = lazy(() => import("@/components/TenerifeMap"));
-
-function daysUntilDeparture() {
-  const [y, m, d] = DEPARTURE.split("-").map(Number) as [number, number, number];
-  const dep = new Date(y, m - 1, d);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.max(0, Math.round((dep.getTime() - today.getTime()) / 86_400_000));
-}
 
 function useCountdown() {
   const [days, setDays] = useState(daysUntilDeparture);

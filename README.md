@@ -4,6 +4,8 @@ Mobile-first family trip planner for Tenerife (8–15 Dec 2026, 7 travellers).
 
 - `/` — public, read-only trip page for the family (no login)
 - `/plan` — the private planner (Map, Stay, Budget, Days, Info), behind a password
+
+The public page's text lives in `src/public/i18n.ts` (Latvian is the default; any key missing in Latvian shows the English text). Day descriptions and good-to-know tips are written in both languages in the planner.
 Vite + React + TypeScript SPA, Tailwind CSS 4, Supabase (shared live state), Leaflet. Deploys to Vercel.
 
 ## Run locally
