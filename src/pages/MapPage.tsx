@@ -3,7 +3,7 @@ import { useNavigate } from "react-router";
 import { CloudSun, Hand, MapPin } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
 import { choosePlanningArea, computeBudget, eur } from "@/lib/budget";
-import { useToast } from "@/lib/toast";
+import { useImportant } from "@/lib/toast";
 import { DEPARTURE, NIGHTS, areaById } from "@/lib/trip-data";
 import { isTouch } from "@/lib/device";
 import { Button, LeftPill, Score, Sheet } from "@/components/ui";
@@ -34,7 +34,7 @@ export default function MapPage() {
   const navigate = useNavigate();
   const [openId, setOpenId] = useState<string | null>(null);
   const days = useCountdown();
-  const toast = useToast();
+  const important = useImportant();
   if (!trip) return null;
 
   const b = computeBudget(trip);
@@ -176,7 +176,7 @@ export default function MapPage() {
                     s.planningArea = r.planningArea;
                     s.familyAptId = r.familyAptId;
                   });
-                  if (r.message) toast(r.message);
+                  if (r.message) important(r.message, "budget");
                   setOpenId(null);
                   navigate("/budget");
                 }}

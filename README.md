@@ -35,3 +35,13 @@ Both are bundled into the client and are public by design (access is limited by 
 The migration creates a `trips` table with one shared row (`id = 'tenerife-2026'`) that holds the whole trip as JSON, and enables realtime for it. The app seeds that row on first load.
 
 There is no login: anyone with the app URL can read and edit this one trip (but not delete it).
+
+## Keeping Supabase awake
+
+Free Supabase projects pause after 7 days without activity. `vercel.json` schedules a daily Vercel cron (06:00 UTC) that calls `api/keepalive.ts`, which does one read of the trip row with the same `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` env vars. It never writes, and always answers 200 (failures are only logged).
+
+Optional: set `CRON_SECRET` in Vercel to any random string. Vercel's cron sends it automatically, and the endpoint then refuses other callers.
+
+## Backups
+
+Notes → Backup: **Download backup** saves the whole shared trip as `tenerife-trip-YYYY-MM-DD.json`. **Restore from backup** checks the file, shows what's in it next to the current plan, and replaces the shared trip only after you confirm.

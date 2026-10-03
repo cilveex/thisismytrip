@@ -2,7 +2,8 @@ import { useState, type FormEvent } from "react";
 import { ExternalLink, Link2, Plus, Trash2 } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
 import { aptTotal, choosePlanningArea, computeBudget, eur, groupLabel, splitStayWarning } from "@/lib/budget";
-import { useToast } from "@/lib/toast";
+import { useImportant } from "@/lib/toast";
+import { InlineNotice } from "@/components/Toaster";
 import {
   NIGHTS,
   areaById,
@@ -64,7 +65,7 @@ export default function StayPage() {
 
 function AreaCard({ area }: { area: Area }) {
   const { trip, update } = useTrip();
-  const toast = useToast();
+  const important = useImportant();
   const [edit, setEdit] = useState(false);
   if (!trip) return null;
   const active = trip.planningArea === area.id;
@@ -101,6 +102,7 @@ function AreaCard({ area }: { area: Area }) {
         <Est k="Airport taxi" v={eur(area.minivan)} />
       </dl>
       <div className="mt-auto pt-4">
+        <InlineNotice where={`area-${area.id}`} className="mb-3" />
         <div className="flex flex-wrap items-center justify-between gap-2">
           <LeftPill left={b.left} />
           {places > 0 && (
@@ -119,7 +121,7 @@ function AreaCard({ area }: { area: Area }) {
                   s.planningArea = r.planningArea;
                   s.familyAptId = r.familyAptId;
                 });
-                if (r.message) toast(r.message);
+                if (r.message) important(r.message, `area-${area.id}`);
               }}
             >
               Plan here

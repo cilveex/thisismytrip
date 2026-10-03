@@ -1,11 +1,12 @@
-import { useId } from "react";
-import { Copy, Plus, Share2, Trash2, UserRound } from "lucide-react";
+import { useId, useRef, useState } from "react";
+import { Copy, Download, Plus, Share2, Trash2, Upload, UserRound } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
-import { eur, groupLabel } from "@/lib/budget";
+import { computeBudget, eur, groupLabel, leftLabel } from "@/lib/budget";
+import { downloadBackup, parseBackup } from "@/lib/backup";
 import { tripSummary } from "@/lib/summary";
-import { uid, type Traveller, type Who } from "@/lib/trip-data";
+import { areaById, uid, type Traveller, type TripState, type Who } from "@/lib/trip-data";
 import { useToast } from "@/lib/toast";
-import { Button, PageHead, Segmented, TextArea } from "@/components/ui";
+import { Button, PageHead, Segmented, Sheet, TextArea, Warning } from "@/components/ui";
 
 async function copyText(text: string) {
   try {
@@ -124,7 +125,143 @@ export default function NotesPage() {
           <pre className="mt-2 font-sans text-sm whitespace-pre-wrap">{summary}</pre>
         </details>
       </section>
+
+      <BackupSection
+        trip={trip}
+        onRestore={(t) => {
+          update(() => t);
+          toast("Backup restored as the shared trip.");
+        }}
+      />
     </div>
+  );
+}
+
+/* ---------------- Backup ---------------- */
+
+function notesLines(notes: string) {
+  const n = notes.trim() ? notes.trim().split("\n").length : 0;
+  return n === 0 ? "empty" : n === 1 ? "1 line" : `${n} lines`;
+}
+
+function stats(t: TripState) {
+  const b = computeBudget(t);
+  const fam = t.apartments.find((a) => a.id === t.familyAptId);
+  const cou = t.apartments.find((a) => a.id === t.coupleAptId);
+  return [
+    ["Travellers", `${t.travellers.length}: ${t.travellers.map((x) => x.name || "unnamed").join(", ")}`],
+    ["Budget", `${leftLabel(b.left)} (pool ${eur(b.pool)})`],
+    ["Planning area", areaById(t, t.planningArea).name],
+    ["Places", `${t.apartments.length}${fam || cou ? `, in use: ${[fam?.name, cou?.name].filter(Boolean).join(" + ")}` : ""}`],
+    ["Days", `${t.days.length} days, ${t.days.reduce((x, d) => x + d.items.length, 0)} items`],
+    ["Ideas", String(t.ideas.length)],
+    ["Notes", notesLines(t.notes)],
+  ] as const;
+}
+
+function BackupSection({ trip, onRestore }: { trip: TripState; onRestore: (t: TripState) => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const inputId = useId();
+  const [pending, setPending] = useState<{ trip: TripState; exportedAt: string | null; file: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const onFile = async (file: File | undefined) => {
+    setError(null);
+    if (!file) return;
+    try {
+      if (file.size > 5_000_000) throw new Error("This file is too big to be a trip backup.");
+      setPending({ ...parseBackup(await file.text()), file: file.name });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't read that file.");
+    } finally {
+      if (fileRef.current) fileRef.current.value = ""; // allow picking the same file again
+    }
+  };
+
+  const now = stats(trip);
+  const next = pending ? stats(pending.trip) : null;
+
+  return (
+    <section className="surface p-4 md:p-5" aria-labelledby="backup-h">
+      <h2 id="backup-h" className="text-2xl font-extrabold">
+        Backup
+      </h2>
+      <p className="mb-3 text-muted">Save the whole shared trip as a file, or bring one back.</p>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={() => downloadBackup(trip)}>
+          <Download className="h-5 w-5" aria-hidden /> Download backup
+        </Button>
+        <input
+          ref={fileRef}
+          id={inputId}
+          type="file"
+          accept="application/json,.json"
+          className="sr-only"
+          onChange={(e) => onFile(e.target.files?.[0])}
+        />
+        <label
+          htmlFor={inputId}
+          className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-full bg-soft px-5 font-bold hover:brightness-95 has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-primary"
+        >
+          <Upload className="h-5 w-5" aria-hidden /> Restore from backup
+        </label>
+      </div>
+      {error && <Warning className="mt-3">{error}</Warning>}
+
+      <Sheet open={!!pending} onClose={() => setPending(null)} title="Restore this backup?">
+        {pending && next && (
+          <div className="space-y-4 pt-2">
+            <p className="text-muted">
+              {pending.file}
+              {pending.exportedAt &&
+                `, saved ${new Date(pending.exportedAt).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}`}
+            </p>
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-muted">
+                  <th scope="col" className="py-1 pr-2 font-bold" />
+                  <th scope="col" className="py-1 pr-2 font-bold">
+                    In backup
+                  </th>
+                  <th scope="col" className="py-1 font-bold">
+                    Now
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y align-top">
+                {next.map(([k, v], i) => (
+                  <tr key={k}>
+                    <th scope="row" className="py-2 pr-2 font-bold">
+                      {k}
+                    </th>
+                    <td className="py-2 pr-2 break-words">{v}</td>
+                    <td className="py-2 break-words text-muted">{now[i]![1]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <Warning>This replaces the shared plan for everyone.</Warning>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                className="h-12"
+                onClick={() => {
+                  onRestore(pending.trip);
+                  setPending(null);
+                }}
+              >
+                Replace shared trip
+              </Button>
+              <Button variant="secondary" className="h-12" onClick={() => downloadBackup(trip)}>
+                <Download className="h-5 w-5" aria-hidden /> Download current first
+              </Button>
+              <Button variant="ghost" className="h-12" onClick={() => setPending(null)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+      </Sheet>
+    </section>
   );
 }
 

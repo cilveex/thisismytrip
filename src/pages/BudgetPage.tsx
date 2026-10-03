@@ -14,7 +14,8 @@ import {
 } from "@/lib/budget";
 import { NIGHTS, areaById, type TripState, type Who } from "@/lib/trip-data";
 import { sandboxDiffers, sandboxFrom, useSandbox, withSandbox, type Sandbox } from "@/lib/sandbox";
-import { useToast } from "@/lib/toast";
+import { useImportant, useToast } from "@/lib/toast";
+import { InlineNotice } from "@/components/Toaster";
 import { Button, LeftPill, NumField, PageHead, SelectField, Sheet, Switch, Warning } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
@@ -37,6 +38,7 @@ export default function BudgetPage() {
   const [sb, setSb] = useSandbox();
   const [drawer, setDrawer] = useState(false);
   const toast = useToast();
+  const important = useImportant();
   if (!trip) return null;
 
   const view = withSandbox(trip, sb);
@@ -50,7 +52,7 @@ export default function BudgetPage() {
     setPlanningArea: (id) => {
       const r = choosePlanningArea(view, base, id);
       setSb({ ...base, planningArea: r.planningArea, familyAptId: r.familyAptId });
-      if (r.message) toast(r.message);
+      if (r.message) important(r.message, "try");
     },
     setFamilyApt: (id) => {
       // Transfers follow where the family stays
@@ -74,6 +76,7 @@ export default function BudgetPage() {
   return (
     <div className="pb-24 lg:pb-0">
       <PageHead title="Budget" sub={`Shared pool for ${t.saved.people} travellers, ${NIGHTS} nights.`} />
+      <InlineNotice where="budget" className="mb-6" />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start">
         <div className="min-w-0 space-y-6">
@@ -371,6 +374,7 @@ function TryPanel({ t }: { t: Try }) {
           onChange={t.setPlanningArea}
           options={view.areas.map((a) => ({ value: a.id, label: a.name }))}
         />
+        <InlineNotice where="try" />
         <SelectField
           label={groupLabel(view, "family")}
           value={view.familyAptId ?? ""}
