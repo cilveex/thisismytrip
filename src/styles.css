@@ -347,3 +347,14 @@ dialog.sheet[open] {
   max-width: 32rem;
   margin-inline: auto;
 }
+
+/* Location pin (teardrop) for place locations */
+.pin-place {
+  width: 28px;
+  height: 28px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: #b8432a;
+  border: 3px solid #fff;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 35%);
+}

@@ -7,6 +7,7 @@ import { tripSummary } from "@/lib/summary";
 import { areaById, uid, type Traveller, type TripState, type Who } from "@/lib/trip-data";
 import { useToast } from "@/lib/toast";
 import { Button, PageHead, Segmented, Sheet, TextArea, Warning } from "@/components/ui";
+import { FlightsSection, GoodToKnowSection } from "./info-sections";
 
 async function copyText(text: string) {
   try {
@@ -27,7 +28,7 @@ async function copyText(text: string) {
   }
 }
 
-export default function NotesPage() {
+export default function InfoPage() {
   const { trip, update } = useTrip();
   const toast = useToast();
   if (!trip) return null;
@@ -41,7 +42,16 @@ export default function NotesPage() {
 
   return (
     <div className="space-y-8">
-      <PageHead title="Notes" sub="Who's coming, things to remember, and a summary for the group chat." />
+      <PageHead title="Info" sub="Flights, who's coming, good to know, notes and backups." />
+
+      <FlightsSection
+        flights={trip.flights}
+        onChange={(flights) =>
+          update((s) => {
+            s.flights = flights;
+          })
+        }
+      />
 
       <section className="surface p-4 md:p-5" aria-labelledby="trav-h">
         <h2 id="trav-h" className="text-2xl font-extrabold">
@@ -81,6 +91,15 @@ export default function NotesPage() {
           <Plus className="h-5 w-5" aria-hidden /> Add traveller
         </Button>
       </section>
+
+      <GoodToKnowSection
+        items={trip.goodToKnow}
+        onChange={(goodToKnow) =>
+          update((s) => {
+            s.goodToKnow = goodToKnow;
+          })
+        }
+      />
 
       <section className="surface p-4 md:p-5" aria-labelledby="notes-h">
         <h2 id="notes-h" className="mb-3 text-2xl font-extrabold">

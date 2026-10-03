@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { supabase } from "./supabase";
-import { TRIP_ID, normalizeState, type TripState } from "./trip-data";
+import { PUBLIC_TRIP_ID, TRIP_ID, normalizeState, type TripState } from "./trip-data";
+import { LOCAL_PUBLIC_KEY, samePublic, toPublic, type PublicTrip } from "./public-trip";
 
 type Updater = (draft: TripState) => TripState | void;
 export type SyncStatus = "loading" | "live" | "saving" | "error" | "local";
@@ -15,6 +16,7 @@ interface Ctx {
 const TripCtx = createContext<Ctx | null>(null);
 const CLIENT = Math.random().toString(36).slice(2);
 const LOCAL_KEY = "tenerife-trip-local";
+
 const DEBOUNCE_MS = 400;
 const RETRY_MS = 5000;
 
@@ -36,7 +38,11 @@ function loadLocal(): TripState {
   return normalizeState(null);
 }
 
-export function TripProvider({ children }: { children: ReactNode }) {
+/**
+ * The planner's store: the full private trip. Only mounted for the logged-in admin, and it
+ * refuses to write without `canWrite`. Every save also refreshes the family-facing public row.
+ */
+export function TripProvider({ children, canWrite }: { children: ReactNode; canWrite: boolean }) {
   const [trip, setTrip] = useState<TripState | null>(() => (supabase ? null : loadLocal()));
   const [status, setStatus] = useState<SyncStatus>(supabase ? "loading" : "local");
   const tripRef = useRef<TripState | null>(trip);
@@ -44,6 +50,32 @@ export function TripProvider({ children }: { children: ReactNode }) {
   const dirty = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const saving = useRef(false);
+  const canWriteRef = useRef(canWrite);
+  useEffect(() => {
+    canWriteRef.current = canWrite;
+  }, [canWrite]);
+  /** Last public snapshot known to be on the server, to skip needless writes */
+  const published = useRef<PublicTrip | null>(null);
+
+  /** Write the family copy if it changed. Returns an error or null. */
+  const publish = useCallback(async (t: TripState) => {
+    const pub = toPublic(t);
+    if (samePublic(published.current, pub)) return null;
+    if (!supabase) {
+      try {
+        localStorage.setItem(LOCAL_PUBLIC_KEY, JSON.stringify(pub));
+      } catch {
+        /* ignore */
+      }
+      published.current = pub;
+      return null;
+    }
+    const { error } = await supabase
+      .from("trips")
+      .upsert({ id: PUBLIC_TRIP_ID, data: pub, updated_at: new Date().toISOString() });
+    if (!error) published.current = pub;
+    return error;
+  }, []);
 
   const apply = useCallback((next: TripState) => {
     tripRef.current = next;
@@ -55,20 +87,26 @@ export function TripProvider({ children }: { children: ReactNode }) {
     timer.current = null;
     const snapshot = tripRef.current;
     if (!snapshot || !dirty.current) return;
+    if (!canWriteRef.current) return setStatus("error"); // logged out: never write
     if (!supabase) {
       try {
         localStorage.setItem(LOCAL_KEY, JSON.stringify(snapshot));
       } catch {
         /* storage unavailable — keep in memory */
       }
+      await publish(snapshot);
       dirty.current = false;
       return;
     }
     if (saving.current) return; // the running save re-checks when it finishes
     saving.current = true;
-    const { error } = await supabase
-      .from("trips")
-      .upsert({ id: TRIP_ID, data: { ...snapshot, _by: CLIENT }, updated_at: new Date().toISOString() });
+    const [priv, pubError] = await Promise.all([
+      supabase
+        .from("trips")
+        .upsert({ id: TRIP_ID, data: { ...snapshot, _by: CLIENT }, updated_at: new Date().toISOString() }),
+      publish(snapshot),
+    ]);
+    const error = priv.error ?? pubError;
     saving.current = false;
     if (error) {
       setStatus("error");
@@ -81,7 +119,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
     } else {
       void run(); // edits arrived mid-flight
     }
-  }, []);
+  }, [publish]);
 
   // Initial load + realtime subscription
   useEffect(() => {
@@ -104,6 +142,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
       } else {
         // First run: seed, but don't overwrite if another device seeded at the same moment.
         const seed = normalizeState(null);
+        if (!canWriteRef.current) return apply(seed);
         await client.from("trips").upsert({ id: TRIP_ID, data: seed }, { onConflict: "id", ignoreDuplicates: true });
         const again = await client.from("trips").select("data").eq("id", TRIP_ID).maybeSingle();
         if (!alive) return;
@@ -111,6 +150,14 @@ export function TripProvider({ children }: { children: ReactNode }) {
         apply(d && Object.keys(d).length ? strip(d) : seed);
       }
       setStatus("live");
+      // Bring the family copy up to date (e.g. after an app update changed what it contains).
+      const pubRow = await client.from("trips").select("data").eq("id", PUBLIC_TRIP_ID).maybeSingle();
+      if (!alive) return;
+      published.current = (pubRow.data?.data as PublicTrip | undefined) ?? null;
+      if (tripRef.current && canWriteRef.current) {
+        const err = await publish(tripRef.current);
+        if (err) console.error("[trip] publish failed", err);
+      }
     };
 
     const ch = client
@@ -130,7 +177,12 @@ export function TripProvider({ children }: { children: ReactNode }) {
       alive = false;
       void client.removeChannel(ch);
     };
-  }, [apply]);
+  }, [apply, publish]);
+
+  // Local mode: make sure the family copy exists for the public page
+  useEffect(() => {
+    if (!supabase && tripRef.current) void publish(tripRef.current);
+  }, [publish]);
 
   // Don't lose the last edit when the tab closes or the phone locks.
   useEffect(() => {

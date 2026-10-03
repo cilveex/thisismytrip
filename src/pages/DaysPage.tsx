@@ -1,11 +1,11 @@
 import { useId, type ReactNode } from "react";
 import { Link } from "react-router";
-import { ArchiveRestore, Bus, Car, Lightbulb, Plus, Trash2 } from "lucide-react";
+import { ArchiveRestore, Bus, Car, Lightbulb, Plus, Trash2, Users } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
 import { eur, itemCost } from "@/lib/budget";
 import { dayName, uid, type Item, type TripState, type Walk } from "@/lib/trip-data";
 import { useToast } from "@/lib/toast";
-import { AutoTextarea, Button, NumField, PageHead, Segmented, Switch } from "@/components/ui";
+import { AutoTextarea, Button, NumField, PageHead, Segmented, Switch, TextArea } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 const walkOptions: { value: Walk; label: string; icon: ReactNode }[] = [
@@ -38,7 +38,7 @@ export default function DaysPage() {
     <div className="space-y-8">
       <PageHead title="Days" sub="8–15 December. Costs are per person and add up in the budget.">
         <Link
-          to="/budget"
+          to="/plan/budget"
           className={cn(
             "inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-bold",
             useCar ? "bg-soft" : "bg-accent text-on-accent",
@@ -76,6 +76,35 @@ export default function DaysPage() {
                   }
                 />
               </header>
+
+              <details className="mb-3 rounded-xl bg-soft/60 px-3">
+                <summary className="flex min-h-11 cursor-pointer items-center gap-2 text-sm font-bold">
+                  <Users className="h-4 w-4" aria-hidden /> For the family
+                  <span className="min-w-0 truncate font-normal text-muted">· {d.en}</span>
+                </summary>
+                <div className="grid gap-3 pb-3 md:grid-cols-2">
+                  <TextArea
+                    label="Latviski"
+                    rows={2}
+                    value={d.lv}
+                    onChange={(v) =>
+                      update((s) => {
+                        s.days[di]!.lv = v;
+                      })
+                    }
+                  />
+                  <TextArea
+                    label="English"
+                    rows={2}
+                    value={d.en}
+                    onChange={(v) =>
+                      update((s) => {
+                        s.days[di]!.en = v;
+                      })
+                    }
+                  />
+                </div>
+              </details>
 
               <ul className="divide-y">
                 {d.items.map((it) => (

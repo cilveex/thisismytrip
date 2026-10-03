@@ -2,7 +2,7 @@
  * Daily Vercel cron (see vercel.json) that keeps the free Supabase project from pausing.
  * Does one read of the shared trip row — never writes. Always answers 200; failures are only logged.
  */
-const TRIP_ID = "tenerife-2026";
+const TRIP_ID = "tenerife-2026-public"; // the public row: readable with the anon key
 
 export async function GET(request: Request) {
   // If CRON_SECRET is set in Vercel, only Vercel's cron (which sends it as a bearer token) gets through.

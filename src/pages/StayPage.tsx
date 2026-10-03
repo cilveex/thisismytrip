@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { ExternalLink, Link2, Plus, Trash2 } from "lucide-react";
+import { lazy, Suspense, useState, type FormEvent } from "react";
+import { ExternalLink, Link2, MapPin, Plus, Trash2 } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
 import { aptTotal, choosePlanningArea, computeBudget, eur, groupLabel, splitStayWarning } from "@/lib/budget";
 import { useImportant } from "@/lib/toast";
@@ -23,12 +23,16 @@ import {
   Score,
   Segmented,
   SelectField,
+  Sheet,
   Switch,
   TextArea,
   TextField,
   Warning,
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { parseLocation } from "@/lib/geo";
+
+const LocationMap = lazy(() => import("@/components/LocationMap"));
 
 export default function StayPage() {
   const { trip } = useTrip();
@@ -163,7 +167,7 @@ function Est({ k, v }: { k: string; v: string }) {
 
 /* ---------------- Places ---------------- */
 
-const statusOrder: Record<Status, number> = { shortlisted: 0, idea: 1, no: 2 };
+const statusOrder: Record<Status, number> = { booked: 0, shortlisted: 1, idea: 2, no: 3 };
 
 function Places() {
   const { trip } = useTrip();
@@ -242,6 +246,10 @@ function AddPlace() {
       floor: "",
       notes: "",
       status: "idea",
+      lat: null,
+      lng: null,
+      address: "",
+      showToFamily: false,
     };
     update((s) => {
       s.apartments.push(apt);
@@ -319,6 +327,7 @@ function AddPlace() {
 const statusLabels: { value: Status; label: string }[] = [
   { value: "idea", label: "Idea" },
   { value: "shortlisted", label: "Shortlisted" },
+  { value: "booked", label: "Booked" },
   { value: "no", label: "Not for us" },
 ];
 
@@ -366,7 +375,13 @@ function AptCard({ apt }: { apt: Apartment }) {
 
       <fieldset>
         <legend className="mb-1 text-sm font-bold text-muted">Status</legend>
-        <Segmented<Status> value={apt.status} onChange={(status) => set({ status })} options={statusLabels} small />
+        <Segmented<Status>
+          value={apt.status}
+          onChange={(status) => set({ status })}
+          options={statusLabels}
+          small
+          className="grid-flow-row grid-cols-2 rounded-3xl sm:grid-flow-col sm:grid-cols-none sm:rounded-full"
+        />
       </fieldset>
 
       <div className="grid grid-cols-2 gap-3">
@@ -405,6 +420,17 @@ function AptCard({ apt }: { apt: Apartment }) {
         </p>
       )}
       <TextArea label="Notes" rows={2} value={apt.notes} onChange={(v) => set({ notes: v })} />
+
+      <fieldset className="space-y-3 rounded-xl bg-soft/60 p-3">
+        <legend className="sr-only">For the family page</legend>
+        <Switch
+          label="Show to family"
+          checked={apt.showToFamily}
+          onChange={(showToFamily) => set({ showToFamily })}
+        />
+        <TextField label="Address" value={apt.address} onChange={(address) => set({ address })} />
+        <LocationField apt={apt} areaCenter={areaById(trip, apt.area)} onChange={(p) => set(p)} />
+      </fieldset>
       {apt.url && (
         <a
           href={apt.url}
@@ -431,5 +457,102 @@ function AptCard({ apt }: { apt: Apartment }) {
       </div>
       {split && <Warning>{split}</Warning>}
     </article>
+  );
+}
+
+function LocationField({
+  apt,
+  areaCenter,
+  onChange,
+}: {
+  apt: Apartment;
+  areaCenter: { lat: number; lng: number };
+  onChange: (p: { lat: number | null; lng: number | null }) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<{ lat: number; lng: number } | null>(null);
+  const [link, setLink] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  const has = apt.lat != null && apt.lng != null;
+
+  const start = () => {
+    setDraft(has ? { lat: apt.lat!, lng: apt.lng! } : null);
+    setLink("");
+    setErr(null);
+    setOpen(true);
+  };
+
+  return (
+    <div>
+      <p className="mb-1 text-sm font-bold text-muted">Location</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex min-w-0 flex-1 items-center gap-1.5 text-sm tabular-nums">
+          <MapPin className={cn("h-4 w-4 shrink-0", has ? "text-bad" : "text-muted")} aria-hidden />
+          {has ? `${apt.lat!.toFixed(5)}, ${apt.lng!.toFixed(5)}` : "Not set"}
+        </span>
+        <Button variant="secondary" className="bg-card" onClick={start}>
+          {has ? "Change" : "Set location"}
+        </Button>
+      </div>
+
+      <Sheet open={open} onClose={() => setOpen(false)} title={`Location: ${apt.name}`}>
+        <div className="space-y-3 pt-2">
+          <p className="text-sm text-muted">Tap the map to drop the pin, or paste a full Google Maps link.</p>
+          <Suspense fallback={<div className="h-72 animate-pulse rounded-xl bg-soft" />}>
+            {open && <LocationMap center={draft ?? areaCenter} value={draft} onPick={setDraft} />}
+          </Suspense>
+          <div className="flex items-end gap-2">
+            <TextField
+              className="flex-1"
+              type="url"
+              label="Google Maps link or coordinates"
+              value={link}
+              onChange={(v) => {
+                setLink(v);
+                setErr(null);
+              }}
+              placeholder="https://www.google.com/maps/place/…"
+            />
+            <Button
+              variant="secondary"
+              disabled={!link.trim()}
+              onClick={() => {
+                const r = parseLocation(link);
+                if ("error" in r) setErr(r.error);
+                else setDraft(r);
+              }}
+            >
+              Use
+            </Button>
+          </div>
+          {err && <p className="text-sm font-bold text-bad">{err}</p>}
+          <p className="text-sm tabular-nums">
+            {draft ? `Pin: ${draft.lat.toFixed(5)}, ${draft.lng.toFixed(5)}` : "No pin yet."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={!draft}
+              onClick={() => {
+                if (draft) onChange(draft);
+                setOpen(false);
+              }}
+            >
+              Save location
+            </Button>
+            {has && (
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  onChange({ lat: null, lng: null });
+                  setOpen(false);
+                }}
+              >
+                Remove location
+              </Button>
+            )}
+          </div>
+        </div>
+      </Sheet>
+    </div>
   );
 }

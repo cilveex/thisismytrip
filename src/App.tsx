@@ -1,24 +1,44 @@
-import { BrowserRouter, Route, Routes } from "react-router";
-import { AppShell } from "./components/AppShell";
-import MapPage from "./pages/MapPage";
-import StayPage from "./pages/StayPage";
-import BudgetPage from "./pages/BudgetPage";
-import DaysPage from "./pages/DaysPage";
-import NotesPage from "./pages/NotesPage";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { PublicTripProvider } from "./lib/public-store";
+import TripPage from "./public/TripPage";
 import { Placeholder } from "./pages/Placeholder";
+
+// The planner (and Leaflet, budget logic…) loads only when someone opens /plan.
+const Planner = lazy(() => import("./planner/Planner"));
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<AppShell />}>
-          <Route index element={<MapPage />} />
-          <Route path="stay" element={<StayPage />} />
-          <Route path="budget" element={<BudgetPage />} />
-          <Route path="days" element={<DaysPage />} />
-          <Route path="notes" element={<NotesPage />} />
-          <Route path="*" element={<Placeholder title="Not found" />} />
-        </Route>
+        <Route
+          index
+          element={
+            <PublicTripProvider>
+              <TripPage />
+            </PublicTripProvider>
+          }
+        />
+        <Route
+          path="plan/*"
+          element={
+            <Suspense
+              fallback={
+                <p className="py-20 text-center text-muted" role="status">
+                  Loading…
+                </p>
+              }
+            >
+              <Planner />
+            </Suspense>
+          }
+        />
+        {/* Old planner links */}
+        {["stay", "budget", "days"].map((p) => (
+          <Route key={p} path={p} element={<Navigate to={`/plan/${p}`} replace />} />
+        ))}
+        <Route path="notes" element={<Navigate to="/plan/info" replace />} />
+        <Route path="*" element={<Placeholder title="Not found" />} />
       </Routes>
     </BrowserRouter>
   );

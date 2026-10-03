@@ -1,17 +1,18 @@
 import { NavLink, Outlet } from "react-router";
-import { BedDouble, CalendarDays, Map, Monitor, Moon, NotebookPen, Sun, Wallet } from "lucide-react";
+import { BedDouble, CalendarDays, Info, LogOut, Map, Monitor, Moon, Sun, Wallet } from "lucide-react";
 import { useTrip, type SyncStatus } from "@/lib/trip-store";
 import { computeBudget } from "@/lib/budget";
 import { useTheme } from "@/lib/theme";
+import { useAuth } from "@/lib/auth";
 import { LeftPill } from "./ui";
 import { cn } from "@/lib/cn";
 
 const NAV = [
-  { to: "/", label: "Map", icon: Map },
-  { to: "/stay", label: "Stay", icon: BedDouble },
-  { to: "/budget", label: "Budget", icon: Wallet },
-  { to: "/days", label: "Days", icon: CalendarDays },
-  { to: "/notes", label: "Notes", icon: NotebookPen },
+  { to: "/plan", label: "Map", icon: Map },
+  { to: "/plan/stay", label: "Stay", icon: BedDouble },
+  { to: "/plan/budget", label: "Budget", icon: Wallet },
+  { to: "/plan/days", label: "Days", icon: CalendarDays },
+  { to: "/plan/info", label: "Info", icon: Info },
 ] as const;
 
 export function AppShell() {
@@ -29,7 +30,7 @@ export function AppShell() {
 
       <header className="sticky top-0 z-[1000] border-b bg-bg/90 pt-[env(safe-area-inset-top)] backdrop-blur">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 md:h-16 md:gap-6 md:px-6">
-          <NavLink to="/" className="inline-flex min-h-11 items-center font-display text-xl font-extrabold">
+          <NavLink to="/plan" className="inline-flex min-h-11 items-center font-display text-xl font-extrabold">
             Tenerife<span className="text-accent">.</span>
           </NavLink>
           <nav aria-label="Main" className="hidden gap-1 md:flex">
@@ -37,7 +38,7 @@ export function AppShell() {
               <NavLink
                 key={n.to}
                 to={n.to}
-                end={n.to === "/"}
+                end={n.to === "/plan"}
                 className={({ isActive }) =>
                   cn(
                     "inline-flex min-h-11 items-center gap-2 rounded-full px-4 font-bold",
@@ -53,6 +54,7 @@ export function AppShell() {
             <SyncDot status={status} />
             {b && <LeftPill left={b.left} className="text-sm" />}
             <ThemeButton />
+            <LogOutButton />
           </div>
         </div>
       </header>
@@ -76,7 +78,7 @@ export function AppShell() {
             <li key={n.to}>
               <NavLink
                 to={n.to}
-                end={n.to === "/"}
+                end={n.to === "/plan"}
                 className={({ isActive }) =>
                   cn(
                     "flex min-h-16 flex-col items-center justify-center gap-0.5 text-xs font-bold",
@@ -139,6 +141,23 @@ function ThemeButton() {
       title={label}
     >
       <Icon className="h-5 w-5" aria-hidden />
+    </button>
+  );
+}
+
+function LogOutButton() {
+  const { session, logOut } = useAuth();
+  if (session === "local") return null; // dev without Supabase: nothing to log out of
+  return (
+    <button
+      type="button"
+      onClick={() => void logOut()}
+      className="inline-flex h-11 min-w-11 items-center justify-center gap-2 rounded-full text-muted hover:bg-soft lg:px-3"
+      aria-label="Log out"
+      title="Log out"
+    >
+      <LogOut className="h-5 w-5" aria-hidden />
+      <span className="hidden font-bold lg:inline">Log out</span>
     </button>
   );
 }

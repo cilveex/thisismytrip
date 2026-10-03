@@ -1,6 +1,6 @@
 export type Walk = "little" | "some" | "lots";
 export type Who = "family" | "couple";
-export type Status = "idea" | "shortlisted" | "no";
+export type Status = "idea" | "shortlisted" | "booked" | "no";
 
 export interface Area {
   id: string;
@@ -29,6 +29,12 @@ export interface Apartment {
   floor: string;
   notes: string;
   status: Status;
+  /** Exact spot, set in the planner by tapping the map or pasting a Google Maps link */
+  lat: number | null;
+  lng: number | null;
+  address: string;
+  /** Included on the public family page */
+  showToFamily: boolean;
 }
 
 export interface Item {
@@ -46,6 +52,33 @@ export interface Day {
   label: string;
   title: string;
   items: Item[];
+  /** Short public description for the family page */
+  lv: string;
+  en: string;
+}
+
+export interface Flight {
+  number: string;
+  airline: string;
+  from: string;
+  to: string;
+  /** Local wall-clock time at that airport, "YYYY-MM-DDTHH:mm" ("" if not set). No time-zone conversion. */
+  depart: string;
+  arrive: string;
+  /** Meet at the airport this many minutes before departure */
+  meetBeforeMin: number;
+}
+
+export interface Flights {
+  outbound: Flight;
+  /** transferMin: apartment → airport, so we can say when to leave */
+  return: Flight & { transferMin: number };
+}
+
+export interface GoodToKnow {
+  id: string;
+  lv: string;
+  en: string;
 }
 
 export interface Traveller {
@@ -66,6 +99,8 @@ export interface Budget {
   mobility: number;
   bufferPct: number;
   tourPrice: number;
+  /** Budget line key → confirmed (true) or estimate (missing/false) */
+  confirmed: Record<string, boolean>;
 }
 
 export interface TripState {
@@ -79,11 +114,18 @@ export interface TripState {
   days: Day[];
   ideas: Item[];
   notes: string;
+  flights: Flights;
+  goodToKnow: GoodToKnow[];
 }
 
 export const NIGHTS = 7;
 export const DEPARTURE = "2026-12-08";
 export const TRIP_ID = "tenerife-2026";
+/** Family-facing copy of the trip; readable by anyone, written only by the planner */
+export const PUBLIC_TRIP_ID = "tenerife-2026-public";
+
+export const DEFAULT_DAY_LV = "Pastaigājam, ēdam un atpūšamies pie okeāna.";
+export const DEFAULT_DAY_EN = "Walk a bit, eat and rest by the ocean.";
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -106,6 +148,24 @@ export const SIGHTS = [
   { name: "Santa Cruz", lat: 28.4636, lng: -16.2518, kind: "sight" },
   { name: "Garachico", lat: 28.373, lng: -16.764, kind: "sight" },
 ] as const;
+
+const blankFlight = (from: string, to: string): Flight => ({
+  number: "",
+  airline: "",
+  from,
+  to,
+  depart: "",
+  arrive: "",
+  meetBeforeMin: 90,
+});
+
+export const defaultFlights = (): Flights => ({
+  outbound: blankFlight("RIX", "TFS"),
+  return: { ...blankFlight("TFS", "RIX"), transferMin: 30 },
+});
+
+const dayDefaults = (days: Omit<Day, "lv" | "en">[]): Day[] =>
+  days.map((d) => ({ ...d, lv: DEFAULT_DAY_LV, en: DEFAULT_DAY_EN }));
 
 export function seedState(): TripState {
   return {
@@ -142,8 +202,9 @@ export function seedState(): TripState {
       mobility: 70,
       bufferPct: 5,
       tourPrice: 55,
+      confirmed: {},
     },
-    days: [
+    days: dayDefaults([
       { date: "2026-12-08", label: "Tue 8", title: "Arrive and settle in", items: [it("Flight Riga → TFS", "some", 0, 6), it("Minivan taxi to apartments", "little", 0, 6), it("Supermarket run", "some", 0, 2)] },
       { date: "2026-12-09", label: "Wed 9", title: "Slow beach day, Lera arrives", items: [it("Promenade and beach", "little"), it("Collect Lera at TFS and pick up the rental car", "little", 0, 1)] },
       { date: "2026-12-10", label: "Thu 10", title: "Teide National Park by car", items: [it("Drive to crater viewpoints", "little", 0, 7, true), it("Roques de García short flat path", "some"), it("Warm jackets — 5–10 °C up there", "little", 0, 7)] },
@@ -152,7 +213,7 @@ export function seedState(): TripState {
       { date: "2026-12-13", label: "Sun 13", title: "North side and Christmas lights", items: [it("La Laguna old town", "some", 0, 7, true), it("Santa Cruz Christmas lights", "some")] },
       { date: "2026-12-14", label: "Mon 14", title: "Masca and farewell dinner", items: [it("Masca viewpoint drive", "little", 0, 7, true), it("Return the car", "little", 0, 1), it("Farewell dinner", "little", 40, 7)] },
       { date: "2026-12-15", label: "Tue 15", title: "Fly home", items: [it("Fly TFS → Riga", "some", 0, 7)] },
-    ],
+    ]),
     ideas: [
       it("Loro Parque (ask about wheelchair hire)", "lots", 45, 7),
       it("Teide cable car (not for grandma — altitude)", "some", 45, 3),
@@ -168,6 +229,8 @@ export function seedState(): TripState {
       "• Ask grandma's doctor about Teide altitude (~2,300 m on the park road).",
       "• Travel insurance and EHIC cards for everyone.",
     ].join("\n"),
+    flights: defaultFlights(),
+    goodToKnow: [],
   };
 }
 
@@ -218,11 +281,34 @@ export function nameFromLink(url: string): string {
 export function normalizeState(raw: Partial<TripState> | null | undefined): TripState {
   const seed = seedState();
   if (!raw) return seed;
+  const fl = (raw.flights ?? {}) as Partial<Flights>;
   return {
     ...seed,
     ...raw,
-    budget: { ...seed.budget, ...(raw.budget ?? {}) },
+    budget: { ...seed.budget, ...(raw.budget ?? {}), confirmed: { ...(raw.budget?.confirmed ?? {}) } },
     areas: raw.areas?.length ? raw.areas : seed.areas,
-    days: raw.days?.length ? raw.days : seed.days,
+    days: raw.days?.length
+      ? raw.days.map((d: Partial<Day>) => ({ lv: DEFAULT_DAY_LV, en: DEFAULT_DAY_EN, ...d, items: d.items ?? [] }) as Day)
+      : seed.days,
+    // Saved rows may predate newer fields, so treat each one as partial and fill the gaps
+    apartments: (raw.apartments ?? []).map((a: Partial<Apartment>) => ({
+      url: "",
+      walkMin: null,
+      floor: "",
+      notes: "",
+      status: "idea" as Status,
+      lat: null,
+      lng: null,
+      address: "",
+      showToFamily: false,
+      ...a,
+    }) as Apartment),
+    ideas: raw.ideas ?? seed.ideas,
+    travellers: raw.travellers ?? seed.travellers,
+    flights: {
+      outbound: { ...seed.flights.outbound, ...(fl.outbound ?? {}) },
+      return: { ...seed.flights.return, ...(fl.return ?? {}) },
+    },
+    goodToKnow: raw.goodToKnow ?? [],
   };
 }

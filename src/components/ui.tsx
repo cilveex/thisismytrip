@@ -338,14 +338,17 @@ export function Segmented<T extends string>({
   onChange,
   options,
   small,
+  className,
 }: {
   value: T;
   onChange: (v: T) => void;
   options: { value: T; label: string; icon?: ReactNode }[];
   small?: boolean;
+  /** Override the container layout, e.g. a 2×2 grid on phones */
+  className?: string;
 }) {
   return (
-    <div className="grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-soft p-1">
+    <div className={cn("grid auto-cols-fr grid-flow-col gap-1 rounded-full bg-soft p-1", className)}>
       {options.map((o) => {
         const on = o.value === value;
         return (

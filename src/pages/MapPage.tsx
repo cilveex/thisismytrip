@@ -162,7 +162,7 @@ export default function MapPage() {
                 className="h-12 w-full"
                 onClick={() => {
                   setOpenId(null);
-                  navigate("/budget");
+                  navigate("/plan/budget");
                 }}
               >
                 You're planning here — open the budget
@@ -178,7 +178,7 @@ export default function MapPage() {
                   });
                   if (r.message) important(r.message, "budget");
                   setOpenId(null);
-                  navigate("/budget");
+                  navigate("/plan/budget");
                 }}
               >
                 Plan around this area

@@ -1,5 +1,6 @@
 import { aptTotal, computeBudget, coupleNames, eur, itemCost, leftLabel, noCarImpact, splitStayWarning } from "./budget";
-import { NIGHTS, areaById, dayName, type TripState, type Who } from "./trip-data";
+import { NIGHTS, areaById, dayName, type Flight, type TripState, type Who } from "./trip-data";
+import { formatLocal, leaveAt, meetAt } from "./flights";
 
 /** WhatsApp treats * _ ~ ` as formatting, and some clients render # and > — strip them from user text. */
 const clean = (t: string) =>
@@ -26,6 +27,21 @@ export function tripSummary(s: TripState): string {
     `Per person: ${eur(b.perPerson)}`,
     "",
   );
+
+  const flight = (label: string, f: Flight) => {
+    if (!f.depart && !f.number) return;
+    const name = [f.airline, f.number].filter(Boolean).join(" ");
+    add(`${label}: ${[name, `${f.from} → ${f.to}`].filter(Boolean).join(", ")}`);
+    if (f.depart) add(`Departs ${formatLocal(f.depart)}${f.arrive ? `, arrives ${formatLocal(f.arrive)}` : ""} (local times)`);
+    if (meetAt(f)) add(`Meet at the airport ${formatLocal(meetAt(f))}`);
+  };
+  if (s.flights.outbound.depart || s.flights.return.depart || s.flights.outbound.number) {
+    add("FLIGHTS");
+    flight("There", s.flights.outbound);
+    flight("Home", s.flights.return);
+    if (leaveAt(s.flights.return)) add(`Leave the apartment ${formatLocal(leaveAt(s.flights.return))}`);
+    add("");
+  }
 
   add("STAY", `Planning around ${areaById(s, s.planningArea).name}`);
   const place = (who: Who, label: string) => {

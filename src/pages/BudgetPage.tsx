@@ -1,6 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { ChevronRight, RotateCcw, SlidersHorizontal, Upload } from "lucide-react";
+import { CircleCheck, CircleDashed, ChevronRight, RotateCcw, SlidersHorizontal, Upload } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
 import {
   choosePlanningArea,
@@ -81,7 +81,7 @@ export default function BudgetPage() {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_23rem] lg:items-start">
         <div className="min-w-0 space-y-6">
           <Result t={t} />
-          <Breakdown view={view} lines={t.trying.lines} total={t.trying.total} />
+          <Breakdown view={view} lines={t.trying.lines} total={t.trying.total} update={update} />
           <Settings trip={trip} update={update} />
         </div>
 
@@ -241,6 +241,7 @@ function Result({ t }: { t: Try }) {
         </div>
       </dl>
 
+      <ConfirmedShare view={view} lines={b.lines} total={b.total} />
       {split && <Warning>{split}</Warning>}
       {noCar && (
         <p className="rounded-xl bg-accent/20 p-3">
@@ -253,15 +254,39 @@ function Result({ t }: { t: Try }) {
   );
 }
 
+function ConfirmedShare({ view, lines, total }: { view: TripState; lines: Line[]; total: number }) {
+  const sure = lines.filter((l) => view.budget.confirmed[l.key]).reduce((x, l) => x + l.amount, 0);
+  const pct = total ? Math.round((sure / total) * 100) : 0;
+  return (
+    <p className="flex items-center gap-2 text-sm">
+      <CircleCheck className="h-4 w-4 shrink-0 text-good" aria-hidden />
+      <span>
+        <strong className="tabular-nums">{eur(sure)}</strong> confirmed ({pct}%), the rest are estimates.
+      </span>
+    </p>
+  );
+}
+
 /* ---------------- Breakdown ---------------- */
 
 const lineLinks: Record<string, { to: string; hint: string }> = {
-  family: { to: "/stay", hint: "from Stay" },
-  couple: { to: "/stay", hint: "from Stay" },
-  activities: { to: "/days", hint: "from Days" },
+  family: { to: "/plan/stay", hint: "from Stay" },
+  couple: { to: "/plan/stay", hint: "from Stay" },
+  activities: { to: "/plan/days", hint: "from Days" },
 };
 
-function Breakdown({ view, lines, total }: { view: TripState; lines: Line[]; total: number }) {
+function Breakdown({
+  view,
+  lines,
+  total,
+  update,
+}: {
+  view: TripState;
+  lines: Line[];
+  total: number;
+  update: Update;
+}) {
+  const confirmed = view.budget.confirmed;
   const people = view.travellers.length;
   const sub: Record<string, string> = {
     car: view.budget.useCar
@@ -296,14 +321,40 @@ function Breakdown({ view, lines, total }: { view: TripState; lines: Line[]; tot
               {link && <ChevronRight className="h-5 w-5 shrink-0 text-muted" aria-hidden />}
             </>
           );
+          const isConfirmed = !!confirmed[l.key];
           return (
-            <li key={l.key}>
+            <li key={l.key} className="pb-2">
               {link ? (
                 <Link to={link.to} className="flex min-h-14 items-center gap-3 py-2 hover:bg-soft/60">
                   {content}
                 </Link>
               ) : (
                 <div className="flex min-h-14 items-center gap-3 py-2">{content}</div>
+              )}
+              {l.key !== "buffer" && (
+                // Shared setting (not part of the Try-it-out sandbox)
+                <button
+                  type="button"
+                  aria-pressed={isConfirmed}
+                  aria-label={`${l.label}: ${isConfirmed ? "confirmed" : "estimate"}. Tap to change.`}
+                  onClick={() =>
+                    update((s) => {
+                      if (isConfirmed) delete s.budget.confirmed[l.key];
+                      else s.budget.confirmed[l.key] = true;
+                    })
+                  }
+                  className={cn(
+                    "ml-7 inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 text-sm font-bold",
+                    isConfirmed ? "bg-good text-on-good" : "bg-soft text-muted",
+                  )}
+                >
+                  {isConfirmed ? (
+                    <CircleCheck className="h-4 w-4" aria-hidden />
+                  ) : (
+                    <CircleDashed className="h-4 w-4" aria-hidden />
+                  )}
+                  {isConfirmed ? "Confirmed" : "Estimate"}
+                </button>
               )}
             </li>
           );
