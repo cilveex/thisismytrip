@@ -301,3 +301,40 @@ dialog.sheet[open] {
   height: 30px;
   font-size: 14px;
 }
+
+/* ---------- Range slider: 44px hit area, 32px thumb ---------- */
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 44px;
+  background: transparent;
+  cursor: pointer;
+}
+.range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--line);
+}
+.range::-moz-range-track {
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--line);
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 32px;
+  height: 32px;
+  margin-top: -12px;
+  border-radius: 9999px;
+  background: var(--primary);
+  border: 3px solid var(--card);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+}
+.range::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  background: var(--primary);
+  border: 3px solid var(--card);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+}

@@ -67,3 +67,49 @@ export function computeBudget(s: TripState, sc: Scenario = {}) {
 export const eur = (n: number) => "€" + Math.round(Math.abs(n)).toLocaleString("en-US").replace(/,/g, " ");
 
 export const leftLabel = (left: number) => (left >= 0 ? `${eur(left)} left` : `${eur(left)} over`);
+
+/** "Alvis and Lera" — the couple's names, for sentences. */
+export function coupleNames(s: TripState) {
+  const names = s.travellers.filter((t) => t.apt === "couple").map((t) => t.name);
+  if (!names.length) return "The couple";
+  return names.length === 1 ? names[0]! : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
+/** Warning when the couple's place in use is in a different area from the family's. */
+export function splitStayWarning(s: TripState, famId = s.familyAptId, coupId = s.coupleAptId): string | null {
+  const fam = famId ? s.apartments.find((a) => a.id === famId) : undefined;
+  const cou = coupId ? s.apartments.find((a) => a.id === coupId) : undefined;
+  if (!fam || !cou || fam.area === cou.area) return null;
+  return `${coupleNames(s)}'s place is in ${areaById(s, cou.area).name}, the family is in ${areaById(s, fam.area).name}.`;
+}
+
+const TOUR_NAMES: [RegExp, string][] = [
+  [/teide|crater|roques/i, "Teide"],
+  [/laguna|santa cruz|north/i, "the north"],
+  [/masca/i, "Masca"],
+  [/garachico|icod/i, "Garachico"],
+  [/loro/i, "Loro Parque"],
+];
+
+const listJoin = (xs: string[]) => (xs.length < 2 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
+
+/** What changes without a car: car trips become tours, the late arrival needs a taxi. */
+export function noCarImpact(s: TripState, areaId = s.planningArea) {
+  const b = s.budget;
+  const tours = s.days.flatMap((d) => d.items.filter((i) => i.carTour).map((i) => ({ i, d })));
+  const places = [
+    ...new Set(
+      tours.map(({ i, d }) => TOUR_NAMES.find(([re]) => re.test(i.text) || re.test(d.title))?.[1] ?? i.text),
+    ),
+  ];
+  const tourExtra = tours.reduce((x, { i }) => x + (b.tourPrice - i.cost) * i.people, 0);
+  const taxiExtra = areaById(s, areaId).minivan * 0.6;
+  const late = s.travellers.filter((t) => /arriv/i.test(t.note)).map((t) => t.name);
+  return {
+    places: listJoin(places),
+    tourExtra,
+    taxiExtra,
+    lateNames: late.length ? listJoin(late) : "the late arrival",
+    carSaved: b.carDays * (b.carRate + b.fuelRate),
+  };
+}

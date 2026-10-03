@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Check, ExternalLink, Link2, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
-import { aptTotal, computeBudget, eur, groupLabel } from "@/lib/budget";
+import { aptTotal, computeBudget, eur, groupLabel, splitStayWarning } from "@/lib/budget";
 import {
   NIGHTS,
   areaById,
@@ -13,7 +13,18 @@ import {
   type Status,
   type Who,
 } from "@/lib/trip-data";
-import { Button, LeftPill, NumField, PageHead, Score, SelectField, Switch, TextArea, TextField } from "@/components/ui";
+import {
+  Button,
+  LeftPill,
+  NumField,
+  PageHead,
+  Score,
+  SelectField,
+  Switch,
+  TextArea,
+  TextField,
+  Warning,
+} from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 export default function StayPage() {
@@ -399,6 +410,7 @@ function AptCard({ apt }: { apt: Apartment }) {
       if (a) Object.assign(a, patch);
     });
   const perNight = apt.total == null ? null : Math.round(apt.total / NIGHTS);
+  const split = inUse ? splitStayWarning(trip) : null;
 
   return (
     <article
@@ -441,7 +453,8 @@ function AptCard({ apt }: { apt: Apartment }) {
             update((s) => {
               const a = s.apartments.find((x) => x.id === apt.id);
               if (a) a.area = v;
-              if (inUse) s.planningArea = v;
+              // Transfers follow where the family stays
+              if (inUse && apt.who === "family") s.planningArea = v;
             })
           }
           options={trip.areas.map((a) => ({ value: a.id, label: a.name }))}
@@ -485,12 +498,13 @@ function AptCard({ apt }: { apt: Apartment }) {
           onChange={(on) =>
             update((s) => {
               s[key] = on ? apt.id : null;
-              if (on) s.planningArea = apt.area;
+              if (on && apt.who === "family") s.planningArea = apt.area;
             })
           }
         />
         <LeftPill left={withThis.left} prefix="With this: " />
       </div>
+      {split && <Warning>{split}</Warning>}
     </article>
   );
 }

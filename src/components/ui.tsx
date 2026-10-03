@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, type ButtonHTMLAttributes, type ReactNode } from "react";
-import { X } from "lucide-react";
+import { TriangleAlert, X } from "lucide-react";
 import { eur } from "@/lib/budget";
 import type { Walk } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
@@ -280,6 +280,15 @@ export function PageHead({ title, sub, children }: { title: string; sub?: string
       </div>
       {children}
     </header>
+  );
+}
+
+export function Warning({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <p className={cn("flex gap-2 rounded-xl border border-bad bg-bad/10 p-3 font-bold", className)}>
+      <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-bad" aria-hidden />
+      <span>{children}</span>
+    </p>
   );
 }
 
