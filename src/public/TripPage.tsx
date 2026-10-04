@@ -186,6 +186,11 @@ function useFmt() {
   };
   return {
     meet: (code: string) => phrase("meet", code, "flights.meetAt"),
+    /** Calendar title for the return meet-up: names the airport, unlike the shorter page label */
+    calMeet: (code: string) => {
+      const k = `calMeet.${code.toUpperCase()}`;
+      return isKey(k) ? t(k) : phrase("meet", code, "flights.meetAt");
+    },
     landsIn: (code: string) => phrase("landsIn", code, "flights.landsIn"),
     /** "Tuesday 8 December" in the page language */
     date: (dt: string) =>
@@ -281,7 +286,7 @@ function Flights({ trip }: { trip: PublicTrip }) {
     { id: "meet-out", title: f.meet(out.from), start: outMeet, end: out.depart, airport: out.from, location: f.airport(out.from) },
     { id: "flight-out", title: `${t("cal.flight", { from: f.airport(out.from), to: f.airport(out.to) })} ${out.number}`.trim(), start: out.depart, end: shiftZone(out.depart, out.from, out.arrive, out.to), airport: out.from },
     { id: "leave", title: t("cal.leave"), start: leave, end: backMeet, airport: back.from },
-    { id: "meet-back", title: f.meet(back.from), start: backMeet, end: back.depart, airport: back.from, location: f.airport(back.from) },
+    { id: "meet-back", title: f.calMeet(back.from), start: backMeet, end: back.depart, airport: back.from, location: f.airport(back.from) },
     { id: "flight-back", title: `${t("cal.flight", { from: f.airport(back.from), to: f.airport(back.to) })} ${back.number}`.trim(), start: back.depart, end: shiftZone(back.depart, back.from, back.arrive, back.to), airport: back.from },
   ];
   const anyTime = hasTime(out.depart) || hasTime(back.depart);

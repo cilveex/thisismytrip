@@ -60,6 +60,8 @@ const en = {
   "airport.TFS": "Tenerife South",
   "airport.TFN": "Tenerife North",
   "cal.flight": "Flight {from} → {to}",
+  "calMeet.TFS": "Meet at Tenerife airport",
+  "calMeet.TFN": "Meet at Tenerife airport",
   "cal.leave": "Leave the apartment for the airport",
   "cal.file": "tenerife-flights.ics",
 
@@ -170,6 +172,8 @@ const lv: Partial<Record<Key, string>> = {
   "airport.TFS": "Tenerife (dienvidi)",
   "airport.TFN": "Tenerife (ziemeļi)",
   "cal.flight": "Lidojums {from} → {to}",
+  "calMeet.TFS": "Tikšanās Tenerifes lidostā",
+  "calMeet.TFN": "Tikšanās Tenerifes lidostā",
   "cal.leave": "Izbraucam no dzīvokļa uz lidostu",
   "cal.file": "tenerife-lidojumi.ics",
 
