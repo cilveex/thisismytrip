@@ -3,29 +3,22 @@
 --   tenerife-2026         full plan        → only the admin can read and write
 --   tenerife-2026-public  family-facing    → anyone can read, only the admin can write
 --
--- BEFORE RUNNING: replace 00000000-0000-0000-0000-000000000000 below with your user id
--- (Authentication → Users → your user → User UID). Then paste into SQL Editor → Run.
--- Safe to run more than once. Run 001_trips.sql first if the table doesn't exist yet.
+-- BEFORE RUNNING: put your user id in is_trip_admin() below (the only place it appears).
+-- Then paste into SQL Editor → Run. Safe to run more than once.
+-- Run 001_trips.sql first if the table doesn't exist yet.
 
--- 1. Who is the admin. The only place the user id appears.
+-- 1. Who is the admin.
+--    ↓↓↓ Replace the zero UUID on the "select" line with your User UID
+--        (Authentication → Users → your user → User UID). This is the only place it appears.
+--    If you leave the zeros, nobody is admin: the family page still reads, but nothing can be saved.
 create or replace function public.is_trip_admin()
 returns boolean
-language plpgsql
+language sql
 stable
 set search_path = ''
 as $$
-declare
-  admin_id constant uuid := '00000000-0000-0000-0000-000000000000';
-begin
-  if admin_id = '00000000-0000-0000-0000-000000000000'::uuid then
-    raise exception 'Set your admin user id in is_trip_admin() before running this script';
-  end if;
-  return auth.uid() = admin_id;
-end;
+  select auth.uid() = '00000000-0000-0000-0000-000000000000'::uuid;
 $$;
-
--- Fail now (not later) if the placeholder is still there.
-do $$ begin perform public.is_trip_admin(); end $$;
 
 -- 2. Table privileges: visitors may only read; signed-in users may read/insert/update (rows still filtered by RLS).
 revoke all on public.trips from anon;

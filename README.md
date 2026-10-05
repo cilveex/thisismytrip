@@ -38,7 +38,7 @@ All three are bundled into the client and are public by design; access is enforc
 3. **Authentication → Users → Add user → Create new user:** your email and a strong password, with "Auto Confirm User" on.
 4. **Authentication → Sign In / Providers:** turn off "Allow new users to sign up".
 5. **Authentication → Users → your user:** copy the User UID.
-6. **SQL Editor:** open `supabase/migrations/002_admin_and_public.sql`, replace `00000000-0000-0000-0000-000000000000` with your UID, and run it. It refuses to run with the placeholder, and is safe to run again.
+6. **SQL Editor:** open `supabase/migrations/002_admin_and_public.sql`, replace the zero UUID in `is_trip_admin()` (it appears once) with your UID, and run it. Safe to run again. If the zeros are left in, nobody is admin and nothing can be saved.
 7. Put the URL, anon key and admin email in `.env` (and in Vercel), then log in at `/plan`.
 
 The `trips` table has two rows. `tenerife-2026` is the full plan: only the admin can read or write it. `tenerife-2026-public` is the family copy: anyone can read it, only the admin can write it. The planner rebuilds the public copy on every save, so it only ever contains flights, places marked "show to family", the family day texts, good-to-know tips and traveller names.
