@@ -8,6 +8,7 @@ export const LOCAL_PUBLIC_KEY = "tenerife-trip-public-local";
  * What the family page can see. Built from the private trip by the planner and saved to
  * the public row. A budget summary of the saved plan (never the sandbox) is included only when
  * "Show budget to family" is on. Published places carry their price, photos and the family note.
+ * Also floor, bedrooms, sleeps and the walk to the sea, for the comparison table.
  * Never the planner's own notes, estimate settings, unpublished places or traveller notes.
  */
 export interface PublicTrip {
@@ -32,6 +33,12 @@ export interface PublicTrip {
     // Optional below: rows published before these existed won't have them
     /** Drive from TFS airport, minutes (the area's estimate) */
     driveMin?: number;
+    /** Floor / lift, as the planner wrote it */
+    floor?: string;
+    bedrooms?: number | null;
+    sleeps?: number | null;
+    /** Walk to the sea, minutes */
+    seaMin?: number | null;
     photos?: string[];
     price?: PublicPrice;
     note?: { lv: string; en: string };
@@ -114,6 +121,10 @@ export function toPublic(t: TripState): PublicTrip {
         booked: a.status === "booked",
         walkMin: a.walkMin,
         driveMin: areaById(t, a.area).driveMin,
+        floor: a.floor,
+        bedrooms: a.bedrooms,
+        sleeps: a.sleeps,
+        seaMin: a.seaMin,
         photos: a.photos,
         price: publicPrice(t, a),
         ...(a.noteLv.trim() || a.noteEn.trim() ? { note: { lv: a.noteLv, en: a.noteEn } } : {}),

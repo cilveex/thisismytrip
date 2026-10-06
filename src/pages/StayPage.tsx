@@ -246,6 +246,9 @@ function AddPlace() {
       total: f.total,
       walkMin: null,
       floor: "",
+      bedrooms: null,
+      sleeps: null,
+      seaMin: null,
       notes: "",
       status: "idea",
       lat: null,
@@ -418,7 +421,10 @@ function AptCard({ apt }: { apt: Apartment }) {
           value={apt.walkMin}
           onChange={(v) => set({ walkMin: v })}
         />
-        <TextField label="Floor / lift" value={apt.floor} onChange={(v) => set({ floor: v })} />
+        <NumField label="Walk to the sea" suffix="min" value={apt.seaMin} onChange={(v) => set({ seaMin: v })} />
+        <NumField label="Bedrooms" value={apt.bedrooms} onChange={(v) => set({ bedrooms: v })} />
+        <NumField label="Sleeps" suffix="people" value={apt.sleeps} onChange={(v) => set({ sleeps: v })} />
+        <TextField className="col-span-2" label="Floor / lift" value={apt.floor} onChange={(v) => set({ floor: v })} />
       </div>
       {apt.total == null && (
         <p className="text-sm text-muted">

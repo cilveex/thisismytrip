@@ -1,20 +1,18 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { Link } from "react-router";
-import { CalendarPlus, Car, CircleCheck, CircleDashed, ExternalLink, Footprints, Hand, Images, Info, MapPin, Plane, PlaneLanding, PlaneTakeoff, Users } from "lucide-react";
+import { CalendarPlus, CircleCheck, CircleDashed, Footprints, Info, MapPin, Plane, PlaneLanding, PlaneTakeoff, Users } from "lucide-react";
 import { usePublicTrip } from "@/lib/public-store";
 import type { PublicTrip } from "@/lib/public-trip";
 import { eur } from "@/lib/budget";
 import { hasTime, leaveAt, meetAt } from "@/lib/flights";
 import { daysUntilDeparture, tripPhase } from "@/lib/dates";
 import { downloadIcs, type CalEvent } from "@/lib/ics";
-import { isTouch } from "@/lib/device";
 import { DEPARTURE, NIGHTS, type Flight } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
 import { I18nProvider } from "./I18nProvider";
-import { PlaceCover, PlaceDialog, PriceInfo } from "./PlaceDialog";
+import { Stays } from "./Stays";
+import { listJoin } from "./stay-format";
 import { isKey, useI18n, type Lang } from "./i18n";
-
-const StaysMap = lazy(() => import("./StaysMap"));
 
 const SECTIONS = [
   { id: "flights", key: "nav.flights" },
@@ -63,7 +61,7 @@ function Page() {
         ) : (
           <div className="mt-14 space-y-16 md:mt-16 md:space-y-20">
             <Flights trip={trip} />
-            <Stays trip={trip} />
+            <StaySection trip={trip} />
             <Days trip={trip} />
             {trip.budget && <Budget trip={trip} />}
             {trip.goodToKnow.length > 0 && <GoodToKnow trip={trip} />}
@@ -382,185 +380,15 @@ function shiftZone(depart: string, fromCode: string, arrive: string, toCode: str
 
 /* ---------------- Stays ---------------- */
 
-function Stays({ trip }: { trip: PublicTrip }) {
-  const { t, tn } = useI18n();
-  const stays = [...trip.stays].sort((a, b) => Number(b.booked) - Number(a.booked));
-  const anyBooked = stays.some((s) => s.booked);
-  const names = (who: string) => listJoin(trip.travellers.filter((x) => x.apt === who).map((x) => x.name), t("and"));
-  // Stable pin list so the map only redraws when the pins really change (realtime sends new objects)
-  const pinKey = JSON.stringify(
-    stays.map((s, i) => ({ n: i + 1, lat: s.lat, lng: s.lng, name: s.name })).filter((p) => p.lat != null && p.lng != null),
-  );
-  const hasPins = pinKey !== "[]";
-  const place = usePlaceHash(stays.length);
-
+function StaySection({ trip }: { trip: PublicTrip }) {
+  const { t } = useI18n();
+  const anyBooked = trip.stays.some((s) => s.booked);
   return (
-    <Section id="stay" title={anyBooked || !stays.length ? t("stay.title") : t("stay.considering")} icon={<MapPin className="h-6 w-6" />}>
-      {!stays.length ? (
-        <p className="text-xl">{t("stay.none")}</p>
-      ) : (
-        <>
-          {!anyBooked && <p className="mb-6 text-xl">{t("stay.notBooked")}</p>}
-          {hasPins && (
-            <div className="mb-6">
-              <Suspense fallback={<div className="h-72 animate-pulse rounded-[var(--radius-card)] bg-soft md:h-96" />}>
-                <StaysMap pinsJson={pinKey} label={t("stay.mapLabel")} airportLabel={t("map.airport")} onSelect={(n) => place.open(n - 1)} />
-              </Suspense>
-              {isTouch() && (
-                <p className="mt-2 flex items-center gap-2 text-base text-muted">
-                  <Hand className="h-5 w-5" aria-hidden /> {t("stay.mapHint")}
-                </p>
-              )}
-            </div>
-          )}
-          <ol className="grid gap-6 md:grid-cols-2">
-            {stays.map((s, i) => {
-              const maps = s.lat != null && s.lng != null
-                ? `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`
-                : s.address
-                  ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}`
-                  : null;
-              return (
-                <li key={s.id} id={`place-${i + 1}`} className="surface relative flex scroll-mt-20 flex-col overflow-hidden">
-                  <div className="relative">
-                    <PlaceCover stay={s} className="aspect-[16/10] w-full" />
-                    {(s.photos?.length ?? 0) > 1 && (
-                      <span className="absolute right-3 bottom-3 inline-flex items-center gap-1.5 rounded-full bg-ink/75 px-3 py-0.5 text-base font-bold text-white" aria-hidden>
-                        <Images className="h-4 w-4" /> {s.photos!.length}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-1 flex-col gap-4 p-5 md:p-6">
-                    <div className="flex items-start gap-3">
-                      <span className="pin pin-stay shrink-0" aria-hidden>
-                        {i + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <h3 className="text-2xl font-extrabold break-words">{s.name}</h3>
-                        <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <span className="text-base font-bold text-muted">{s.area}</span>
-                          <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-base font-bold", s.booked ? "bg-good text-on-good" : "bg-soft")}>
-                            {s.booked ? <CircleCheck className="h-4 w-4" aria-hidden /> : <CircleDashed className="h-4 w-4" aria-hidden />}
-                            {s.booked ? t("stay.booked") : t("stay.maybe")}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                    <PriceInfo stay={s} compact />
-                    <dl className="space-y-3">
-                      {names(s.who) && (
-                        <div>
-                          <dt className="text-base font-bold text-muted">{t("stay.who")}</dt>
-                          <dd>{names(s.who)}</dd>
-                        </div>
-                      )}
-                      {s.address && (
-                        <div>
-                          <dt className="text-base font-bold text-muted">{t("stay.address")}</dt>
-                          <dd className="break-words">{s.address}</dd>
-                        </div>
-                      )}
-                    </dl>
-                    {((s.walkMin ?? 0) > 0 || (s.driveMin ?? 0) > 0) && (
-                      <ul className="space-y-2">
-                        {s.walkMin != null && s.walkMin > 0 && (
-                          <li className="flex items-center gap-2">
-                            <Footprints className="h-5 w-5 shrink-0 text-muted" aria-hidden /> {tn("stay.walk", s.walkMin)}
-                          </li>
-                        )}
-                        {s.driveMin != null && s.driveMin > 0 && (
-                          <li className="flex items-center gap-2">
-                            <Car className="h-5 w-5 shrink-0 text-muted" aria-hidden /> {tn("stay.drive", s.driveMin)}
-                          </li>
-                        )}
-                      </ul>
-                    )}
-                    <div className="mt-auto flex flex-wrap gap-3">
-                      {/* Covers the whole card, so tapping anywhere opens the details; the links sit above it */}
-                      <button
-                        type="button"
-                        onClick={() => place.open(i)}
-                        className="inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-5 font-bold text-on-primary after:absolute after:inset-0 after:rounded-[var(--radius-card)] after:content-[''] focus-visible:outline-none focus-visible:after:outline-3 focus-visible:after:outline-offset-2 focus-visible:after:outline-primary"
-                      >
-                        <Images className="h-5 w-5" aria-hidden /> {t("stay.details")}
-                        <span className="sr-only">: {s.name}</span>
-                      </button>
-                      {maps && <ExtLink href={maps}>{t("stay.maps")}</ExtLink>}
-                      {s.url && <ExtLink href={s.url}>{t("stay.listing")}</ExtLink>}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ol>
-          <PlaceDialog stays={stays} index={place.index} names={names} onIndex={place.go} onClose={place.close} />
-        </>
-      )}
+    <Section id="stay" title={anyBooked || !trip.stays.length ? t("stay.title") : t("stay.considering")} icon={<MapPin className="h-6 w-6" />}>
+      {trip.stays.length ? <Stays trip={trip} /> : <p className="text-xl">{t("stay.none")}</p>}
     </Section>
   );
 }
-
-/**
- * Which place's details are open, kept in the URL as #place-2 so a link can be shared.
- * Opening adds a history entry, so the back button closes the dialog; moving between places replaces it.
- */
-function usePlaceHash(count: number) {
-  const read = () => {
-    const m = /^#place-(\d+)$/.exec(window.location.hash);
-    return m ? Number(m[1]) - 1 : null;
-  };
-  const [index, setIndex] = useState<number | null>(read);
-  /** True when we added the history entry (false when the page was opened from a shared link) */
-  const pushed = useRef(false);
-
-  useEffect(() => {
-    const onPop = () => {
-      pushed.current = false;
-      setIndex(read());
-    };
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
-
-  const url = (i: number | null) => window.location.pathname + window.location.search + (i == null ? "" : `#place-${i + 1}`);
-  const valid = index != null && index >= 0 && index < count ? index : null;
-
-  return {
-    index: valid,
-    open: (i: number) => {
-      if (valid == null) {
-        window.history.pushState(null, "", url(i));
-        pushed.current = true;
-      } else window.history.replaceState(null, "", url(i));
-      setIndex(i);
-    },
-    go: (i: number) => {
-      window.history.replaceState(null, "", url(i));
-      setIndex(i);
-    },
-    close: () => {
-      if (valid == null) return;
-      if (pushed.current) return window.history.back(); // popstate closes it
-      window.history.replaceState(null, "", url(null));
-      setIndex(null);
-    },
-  };
-}
-
-function ExtLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className="relative z-10 inline-flex min-h-12 items-center gap-2 rounded-full bg-soft px-5 font-bold text-primary"
-    >
-      {children} <ExternalLink className="h-5 w-5" aria-hidden />
-    </a>
-  );
-}
-
-const listJoin = (xs: string[], and: string) => (xs.length < 2 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} ${and} ${xs.at(-1)}`);
 
 /* ---------------- Days ---------------- */
 

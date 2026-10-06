@@ -1,32 +1,33 @@
 import { lazy, Suspense, useEffect, useId, useRef, useState, type ReactNode, type TouchEvent } from "react";
-import { Car, ChevronLeft, ChevronRight, CircleCheck, CircleDashed, ExternalLink, Footprints, ImageOff, MapPin, X } from "lucide-react";
-import type { PublicTrip } from "@/lib/public-trip";
+import { BedDouble, Building2, Car, ChevronLeft, ChevronRight, CircleCheck, CircleDashed, ExternalLink, Footprints, ImageOff, MapPin, Users, Waves, X } from "lucide-react";
 import { eur } from "@/lib/budget";
 import { NIGHTS } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
 import { useI18n } from "./i18n";
+import { mapsUrl, pinLabel, type Stay } from "./stay-format";
 
 const StaysMap = lazy(() => import("./StaysMap"));
 
-export type Stay = PublicTrip["stays"][number];
-
-/** Cover photo, or a neat placeholder with the area name */
-export function PlaceCover({ stay, className }: { stay: Stay; className?: string }) {
+/** Cover photo, or a neat placeholder with the area name. `small`: just an icon, for thumbnails. */
+export function PlaceCover({ stay, small, className }: { stay: Stay; small?: boolean; className?: string }) {
   const { t } = useI18n();
   const src = stay.photos?.[0];
   if (src)
     return <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" className={cn("object-cover", className)} />;
-  return <Placeholder area={stay.area} label={t("stay.noPhotos")} className={className} />;
+  return <Placeholder area={stay.area} label={t("stay.noPhotos")} small={small} className={className} />;
 }
 
-function Placeholder({ area, label, className }: { area: string; label: string; className?: string }) {
+function Placeholder({ area, label, small, className }: { area: string; label: string; small?: boolean; className?: string }) {
+  const bg = "bg-[linear-gradient(160deg,var(--soft),color-mix(in_oklab,var(--primary)_22%,var(--soft)))]";
+  if (small)
+    return (
+      <span className={cn("flex items-center justify-center", bg, className)} title={label}>
+        <ImageOff className="h-7 w-7 text-primary/70" aria-hidden />
+        <span className="sr-only">{label}</span>
+      </span>
+    );
   return (
-    <div
-      className={cn(
-        "flex flex-col items-center justify-center gap-1 bg-[linear-gradient(160deg,var(--soft),color-mix(in_oklab,var(--primary)_22%,var(--soft)))] p-4 text-center",
-        className,
-      )}
-    >
+    <div className={cn("flex flex-col items-center justify-center gap-1 p-4 text-center", bg, className)}>
       <MapPin className="h-8 w-8 text-primary" aria-hidden />
       <span className="font-display text-2xl font-extrabold">{area}</span>
       <span className="flex items-center gap-1.5 text-base text-muted">
@@ -63,13 +64,6 @@ export function PriceInfo({ stay, compact }: { stay: Stay; compact?: boolean }) 
     </div>
   );
 }
-
-const mapsUrl = (s: Stay) =>
-  s.lat != null && s.lng != null
-    ? `https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lng}`
-    : s.address
-      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.address)}`
-      : null;
 
 /**
  * Full-screen place details on phones, a large centred dialog on wider screens.
@@ -325,7 +319,17 @@ function Details({ stay: s, titleId, names }: { stay: Stay; titleId: string; nam
   const note = s.note ? (lang === "lv" ? s.note.lv : s.note.en) || s.note.en || s.note.lv : "";
   const host = s.url ? hostOf(s.url) : "";
   const listing = /booking\.com$/.test(host) ? t("place.openBooking") : /airbnb\./.test(host) ? t("place.openAirbnb") : t("stay.listing");
-  const pin = s.lat != null && s.lng != null ? JSON.stringify([{ n: 1, lat: s.lat, lng: s.lng, name: s.name }]) : null;
+  const pin =
+    s.lat != null && s.lng != null
+      ? JSON.stringify([{ id: s.id, lat: s.lat, lng: s.lng, label: pinLabel(s), group: s.who, booked: s.booked, title: s.name }])
+      : null;
+  const facts: [ReactNode, string][] = [];
+  if (s.seaMin != null && s.seaMin > 0) facts.push([<Waves key="s" className="h-6 w-6" />, tn("stay.sea", s.seaMin)]);
+  if (s.walkMin != null && s.walkMin > 0) facts.push([<Footprints key="w" className="h-6 w-6" />, tn("stay.walk", s.walkMin)]);
+  if (s.driveMin != null && s.driveMin > 0) facts.push([<Car key="d" className="h-6 w-6" />, tn("stay.drive", s.driveMin)]);
+  if (s.bedrooms != null && s.bedrooms > 0) facts.push([<BedDouble key="b" className="h-6 w-6" />, tn("stay.bedrooms", s.bedrooms)]);
+  if (s.sleeps != null && s.sleeps > 0) facts.push([<Users key="p" className="h-6 w-6" />, tn("stay.sleeps", s.sleeps)]);
+  if (s.floor?.trim()) facts.push([<Building2 key="f" className="h-6 w-6" />, t("stay.floor", { v: s.floor.trim() })]);
 
   return (
     <div className="space-y-6 p-5 md:p-8">
@@ -382,18 +386,16 @@ function Details({ stay: s, titleId, names }: { stay: Stay; titleId: string; nam
         )}
       </dl>
 
-      {((s.walkMin ?? 0) > 0 || (s.driveMin ?? 0) > 0) && (
+      {facts.length > 0 && (
         <ul className="space-y-2">
-          {s.walkMin != null && s.walkMin > 0 && (
-            <li className="flex items-center gap-3">
-              <Footprints className="h-6 w-6 shrink-0 text-muted" aria-hidden /> {tn("stay.walk", s.walkMin)}
+          {facts.map(([icon, text]) => (
+            <li key={text} className="flex items-center gap-3">
+              <span className="shrink-0 text-muted" aria-hidden>
+                {icon}
+              </span>
+              {text}
             </li>
-          )}
-          {s.driveMin != null && s.driveMin > 0 && (
-            <li className="flex items-center gap-3">
-              <Car className="h-6 w-6 shrink-0 text-muted" aria-hidden /> {tn("stay.drive", s.driveMin)}
-            </li>
-          )}
+          ))}
         </ul>
       )}
 
@@ -405,7 +407,7 @@ function Details({ stay: s, titleId, names }: { stay: Stay; titleId: string; nam
               pinsJson={pin}
               label={t("place.mapLabel", { name: s.name })}
               airportLabel={t("map.airport")}
-              className="h-56 md:h-72"
+              className="h-56 rounded-[var(--radius-card)] border md:h-72"
             />
           </Suspense>
         </div>

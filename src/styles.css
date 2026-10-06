@@ -359,16 +359,6 @@ dialog.sheet[open] {
   box-shadow: 0 2px 6px rgb(0 0 0 / 35%);
 }
 
-/* Public page: numbered stay pins */
-.pin-stay {
-  width: 44px;
-  height: 44px;
-  background: #1f5f8b;
-  color: #fff;
-  font-size: 20px;
-  border: 3px solid #fff;
-}
-
 /* Public family page: larger base type (set while the page is open) */
 html.public-page {
   font-size: 18px;
@@ -381,9 +371,6 @@ html.public-page {
   background: #1d2428;
   color: #fff;
   border: 3px solid #fff;
-}
-.pin-click {
-  cursor: pointer;
 }
 .leaflet-tooltip.tip-airport {
   padding: 2px 8px;
@@ -423,6 +410,182 @@ dialog.place-dialog[open] {
 @media (prefers-reduced-motion: reduce) {
   dialog.place-dialog[open],
   dialog.sheet[open] {
+    animation: none;
+  }
+}
+
+/* ---------- Public page: price pins ----------
+   The marker root is 0×0 on the place's spot; the pill sits above it on a small tail.
+   .sp-pos is moved by the overlap spreading, .sp-pill grows when active. */
+.sp-root {
+  overflow: visible;
+}
+.sp-root:focus,
+.sp-root:focus-visible {
+  outline: none;
+}
+.sp-pos {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+.sp-pill {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
+  transform: translateX(-50%);
+  transform-origin: 50% calc(100% + 8px);
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+/* Tail pointing at the spot */
+.sp-pill::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -9px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  transform-origin: center;
+  background: inherit;
+  border-right: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  margin-bottom: 2px;
+  z-index: -1;
+}
+/* Bigger tap area than the pill itself */
+.sp-pill.sp-click::before {
+  content: "";
+  position: absolute;
+  inset: -8px -4px;
+}
+.sp-click {
+  cursor: pointer;
+}
+.sp-family {
+  background: #1f5f8b;
+  color: #fff;
+}
+.sp-couple {
+  background: #f2c230;
+  color: #1d2428;
+}
+.sp-check {
+  font-size: 0.95em;
+}
+.sp-pill.sp-active {
+  transform: translateX(-50%) scale(1.2);
+  box-shadow: 0 0 0 3px #1d2428, 0 4px 12px rgb(0 0 0 / 40%);
+}
+.sp-root:focus-visible .sp-pill {
+  box-shadow: 0 0 0 3px #1d2428, 0 0 0 6px #fff;
+}
+.sp-leader {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  height: 2px;
+  transform-origin: 0 50%;
+  background: #1d2428;
+  opacity: 0.7;
+}
+.sp-dot {
+  position: absolute;
+  top: -5px;
+  left: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #1d2428;
+  border: 2px solid #fff;
+}
+/* Legend swatches use the same colours */
+.sw-family {
+  background: #1f5f8b;
+}
+.sw-couple {
+  background: #f2c230;
+}
+
+/* Hover / focus preview on desktop */
+.leaflet-tooltip.tip-preview {
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
+  white-space: normal;
+}
+.leaflet-tooltip.tip-preview::before {
+  display: none;
+}
+.sp-preview {
+  width: 220px;
+  font-size: 15px;
+  font-weight: 400;
+}
+.sp-preview img {
+  display: block;
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+}
+.sp-preview-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 12px 10px;
+}
+.sp-preview-text strong {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-pill {
+    transition: none;
+  }
+}
+
+/* Public page: compare options. Full screen, like the place details. */
+dialog.compare-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: var(--bg);
+  color: var(--ink);
+  overscroll-behavior: contain;
+}
+dialog.compare-dialog::backdrop {
+  background: rgb(10 16 20 / 72%);
+}
+dialog.compare-dialog[open] {
+  animation: sheet-up 0.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.compare-dialog[open] {
     animation: none;
   }
 }

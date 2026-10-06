@@ -27,6 +27,11 @@ export interface Apartment {
   total: number | null;
   walkMin: number | null;
   floor: string;
+  bedrooms: number | null;
+  /** How many people it sleeps */
+  sleeps: number | null;
+  /** Walk to the sea, minutes */
+  seaMin: number | null;
   notes: string;
   status: Status;
   /** Exact spot, set in the planner by tapping the map or pasting a Google Maps link */
@@ -317,6 +322,9 @@ export function normalizeState(raw: Partial<TripState> | null | undefined): Trip
       url: "",
       walkMin: null,
       floor: "",
+      bedrooms: null,
+      sleeps: null,
+      seaMin: null,
       notes: "",
       status: "idea" as Status,
       lat: null,
