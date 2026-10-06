@@ -262,6 +262,7 @@ function MobileStays({
             onPinClick={onPin}
             panKey={panKey}
             padBottom={overlayH}
+            coveredTop={stickyBottom}
             attributionTop
             className="h-full border-y"
           />
@@ -274,6 +275,9 @@ function MobileStays({
     </>
   );
 }
+
+/** Bottom of the page's sticky top bar, so the map can centre pins below it */
+const stickyBottom = () => document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
 
 function PhoneCard({ stay: s, who, active, onOpen }: { stay: Stay; who: string; active: boolean; onOpen: () => void }) {
   const { t, tn } = useI18n();

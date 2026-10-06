@@ -70,6 +70,7 @@ export default function StaysMap({
   previews = false,
   panKey = 0,
   padBottom = 0,
+  coveredTop: coveredTopProp,
   attributionTop = false,
   className,
 }: {
@@ -86,6 +87,8 @@ export default function StaysMap({
   panKey?: number;
   /** Map height covered by something laid over its bottom edge, px */
   padBottom?: number;
+  /** Viewport y where the page stops covering the map from above (e.g. a sticky top bar's bottom) */
+  coveredTop?: () => number;
   /** Credits top right, when the bottom edge is covered */
   attributionTop?: boolean;
   className?: string;
@@ -99,6 +102,7 @@ export default function StaysMap({
   const cb = useRef({ onPinClick, onPinHover });
   const active = useRef(activeId);
   const pad = useRef(padBottom);
+  const coveredTop = useRef(coveredTopProp);
   const { t } = useI18n();
   const [withAirport, setWithAirport] = useState(false);
   const airport = useRef(withAirport);
@@ -109,6 +113,7 @@ export default function StaysMap({
     cb.current = { onPinClick, onPinHover };
     active.current = activeId;
     pad.current = padBottom;
+    coveredTop.current = coveredTopProp;
     airport.current = withAirport;
   });
 
@@ -309,15 +314,22 @@ export default function StaysMap({
     placeEdge.current();
   }, [activeId, pinsJson]);
 
-  // Bring the active pin into the middle of the part of the map you can see
+  // Centre the active pill in the part of the map you can see: below the page's sticky top bar
+  // (when the map's top is scrolled under it) and above whatever covers the bottom edge
   useEffect(() => {
     const map = mapRef.current;
     const p = pinsRef.current.find((x) => x.id === active.current);
-    if (!panKey || !map || !p) return;
+    if (!panKey || !map || !p || !el.current) return;
     const size = map.getSize();
+    const bottom = size.y - pad.current;
+    const covered = (coveredTop.current?.() ?? 0) - el.current.getBoundingClientRect().top;
+    // Keep at least a pill's worth of room even if the map is mostly scrolled away
+    const top = Math.min(Math.max(0, covered), Math.max(0, bottom - 80));
+    // The pill sits above its spot, so aim the spot half a (grown) pill below the middle
+    const pill = p.marker.getElement()?.querySelector<HTMLElement>(".sp-pill");
+    const h = (pill?.offsetHeight ?? 30) * ACTIVE_SCALE;
+    const target = L.point(size.x / 2, (top + bottom) / 2 + TAIL + h / 2);
     const at = map.latLngToContainerPoint(p.latlng);
-    // The pill is above its spot, so aim the spot a little below the middle
-    const target = L.point(size.x / 2, (size.y - pad.current) / 2 + 24);
     map.panBy(at.subtract(target), { animate: !reducedMotion(), duration: 0.35 });
   }, [panKey]);
 
