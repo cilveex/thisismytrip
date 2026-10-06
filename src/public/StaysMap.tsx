@@ -1,9 +1,11 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { ArrowRight, Plane } from "lucide-react";
 import { isTouch } from "@/lib/device";
 import { AIRPORT, type Who } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
+import { useI18n } from "./i18n";
 
 /** Lucide "plane", inlined because Leaflet markers take an HTML string */
 const PLANE =
@@ -19,6 +21,8 @@ export interface StayPin {
   booked: boolean;
   /** Read out for the pin, e.g. "Casa Sol, €1 400, booked" */
   title: string;
+  /** Drive from the airport, minutes, for the edge arrow */
+  driveMin?: number;
   /** Hover / focus preview, only shown when `previews` is on */
   preview?: { img?: string; name: string; total: string; perPerson?: string };
 }
@@ -30,10 +34,29 @@ const ACTIVE_SCALE = 1.2;
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
+/** Room around the places when framing: pills sit above their spots, so more on top */
+const FRAME_TL: [number, number] = [56, 76];
+const FRAME_BR: [number, number] = [56, 40];
+/** Gap between the edge arrow and the map's edge, px */
+const EDGE_GAP = 10;
+/** Keep the arrow's centre this far from the corners when it sits on the top or bottom edge */
+const EDGE_HALF_W = 110;
+/** Keep the arrow below the zoom buttons and the "Show airport" button */
+const EDGE_TOP = 112;
+
+const EDGE_SHIFT = {
+  right: "translate(-100%, -50%)",
+  left: "translate(0, -50%)",
+  top: "translate(-50%, 0)",
+  bottom: "translate(-50%, -100%)",
+} as const;
+
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 /**
- * Price pills for the places, plus Tenerife South airport; framed so all of them show.
+ * Price pills for the places, plus Tenerife South airport. Opens framed on the places; a button
+ * zooms out to include the airport and back. While the airport is off-screen, an arrow on the
+ * map's edge points to it with the drive time.
  * One finger scrolls the page; two fingers move the map.
  * `pinsJson`: JSON of StayPin[] — a string so the pins redraw only when they really change.
  */
@@ -76,10 +99,82 @@ export default function StaysMap({
   const cb = useRef({ onPinClick, onPinHover });
   const active = useRef(activeId);
   const pad = useRef(padBottom);
+  const { t } = useI18n();
+  const [withAirport, setWithAirport] = useState(false);
+  const airport = useRef(withAirport);
+  /** Where the airport arrow sits, when the airport is off-screen */
+  const edgeEl = useRef<HTMLButtonElement>(null);
+  const [edge, setEdge] = useState<{ x: number; y: number; angle: number; side: "left" | "right" | "top" | "bottom" } | null>(null);
   useEffect(() => {
     cb.current = { onPinClick, onPinHover };
     active.current = activeId;
     pad.current = padBottom;
+    airport.current = withAirport;
+  });
+
+  /** Fit the places (and the airport, when asked) into the part of the map you can see */
+  const frame = useRef((animate: boolean) => {
+    const map = mapRef.current;
+    if (!map) return;
+    const spots = pinsRef.current.map((p) => p.latlng);
+    if (airport.current || !spots.length) spots.push(L.latLng(AIRPORT.lat, AIRPORT.lng));
+    // With the airport: room for its label, centred below its pin and usually to the east
+    const br: [number, number] = airport.current ? [110, 56] : FRAME_BR;
+    map.fitBounds(L.latLngBounds(spots), {
+      paddingTopLeft: FRAME_TL,
+      paddingBottomRight: [br[0], br[1] + pad.current],
+      maxZoom: 16,
+      animate: animate && !reducedMotion(),
+    });
+  });
+
+  /** Show the arrow on the edge when the airport is out of view */
+  const placeEdge = useRef(() => {
+    const map = mapRef.current;
+    if (!map) return setEdge(null);
+    const size = map.getSize();
+    const h = size.y - pad.current;
+    const at = map.latLngToContainerPoint([AIRPORT.lat, AIRPORT.lng]);
+    if (at.x >= 0 && at.x <= size.x && at.y >= 0 && at.y <= h) return setEdge(null);
+    // Walk from the middle towards the airport until we reach the inset box; the arrow sits
+    // flush against the side it crosses, so it never pokes into the middle of the map
+    const box = { x0: EDGE_GAP, x1: size.x - EDGE_GAP, y0: EDGE_TOP, y1: Math.max(EDGE_TOP, h - EDGE_GAP) };
+    const c = L.point((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2);
+    const d = at.subtract(c);
+    const kx = d.x > 0 ? (box.x1 - c.x) / d.x : d.x < 0 ? (box.x0 - c.x) / d.x : Infinity;
+    const ky = d.y > 0 ? (box.y1 - c.y) / d.y : d.y < 0 ? (box.y0 - c.y) / d.y : Infinity;
+    const k = Math.min(kx, ky);
+    const side = kx <= ky ? (d.x > 0 ? "right" : "left") : d.y > 0 ? "bottom" : "top";
+    const along = side === "left" || side === "right";
+    const lo = Math.min(EDGE_HALF_W, size.x / 2);
+    const clampX = (v: number) => Math.min(Math.max(v, lo), size.x - lo);
+    const clampY = (v: number) => Math.min(Math.max(v, box.y0 + 22), box.y1 - 22);
+    const x0 = along ? c.x + d.x * k : clampX(c.x + d.x * k);
+    const y0 = along ? clampY(c.y + d.y * k) : c.y + d.y * k;
+
+    // Slide along the edge to the nearest spot that doesn't cover a price pill
+    const w = edgeEl.current?.offsetWidth ?? 190;
+    const ah = edgeEl.current?.offsetHeight ?? 40;
+    const origin = el.current!.getBoundingClientRect();
+    const pills = pinsRef.current.flatMap((p) => {
+      const r = p.marker.getElement()?.querySelector(".sp-pill")?.getBoundingClientRect();
+      return r ? [{ l: r.left - origin.left, r: r.right - origin.left, t: r.top - origin.top, b: r.bottom - origin.top }] : [];
+    });
+    const rectAt = (x: number, y: number) => {
+      const l = side === "right" ? x - w : side === "left" ? x : x - w / 2;
+      const t = side === "bottom" ? y - ah : side === "top" ? y : y - ah / 2;
+      return { l: l - 4, r: l + w + 4, t: t - 4, b: t + ah + 4 };
+    };
+    const free = (x: number, y: number) => {
+      const a = rectAt(x, y);
+      return pills.every((p) => a.r <= p.l || a.l >= p.r || a.b <= p.t || a.t >= p.b);
+    };
+    let best = { x: x0, y: y0 };
+    for (let step = 1; step <= 12 && !free(best.x, best.y); step++) {
+      const shift = Math.ceil(step / 2) * 24 * (step % 2 ? -1 : 1);
+      best = along ? { x: x0, y: clampY(y0 + shift) } : { x: clampX(x0 + shift), y: y0 };
+    }
+    setEdge({ x: best.x, y: best.y, angle: Math.atan2(d.y, d.x), side });
   });
 
   // The map, once
@@ -104,6 +199,7 @@ export default function StaysMap({
     mapRef.current = map;
     layerRef.current = L.layerGroup().addTo(map);
     map.on("zoomend", () => layout(map, pinsRef.current, active.current));
+    map.on("move zoom resize", () => placeEdge.current());
     const ro = new ResizeObserver(() => map.invalidateSize());
     ro.observe(el.current);
     return () => {
@@ -179,19 +275,27 @@ export default function StaysMap({
     let live = true;
     void document.fonts?.ready.then(() => live && layout(map, pinsRef.current, active.current));
 
-    // Frame everything when the set of spots changes (not on a language switch or a price edit)
+    // Frame when the set of spots changes (not on a language switch or a price edit)
     const spots = JSON.stringify(pins.map((p) => [p.lat, p.lng]));
     if (spots !== framed.current) {
       framed.current = spots;
-      const all = [...pins.map((p) => [p.lat, p.lng] as [number, number]), [AIRPORT.lat, AIRPORT.lng] as [number, number]];
-      // Room for the pills above their spots, and the airport's label, centred below its pin.
-      // The airport is the easternmost point for most areas, so the label needs extra space on the right.
-      map.fitBounds(L.latLngBounds(all), { paddingTopLeft: [72, 64], paddingBottomRight: [110, 56 + pad.current], maxZoom: 15 });
+      frame.current(false);
     }
+    placeEdge.current();
     return () => {
       live = false;
     };
   }, [pinsJson, airportLabel, tappable, previews]);
+
+  // "Show airport" toggled: zoom out to it, or back to the places
+  const toggled = useRef(false);
+  useEffect(() => {
+    if (!toggled.current) return void (toggled.current = true);
+    frame.current(true);
+  }, [withAirport]);
+
+  // The cards over the bottom edge changed height
+  useEffect(() => placeEdge.current(), [padBottom]);
 
   // Highlight
   useEffect(() => {
@@ -202,6 +306,7 @@ export default function StaysMap({
       p.marker.getElement()?.querySelector(".sp-pill")?.classList.toggle("sp-active", p.id === activeId);
     }
     layout(map, pinsRef.current, activeId);
+    placeEdge.current();
   }, [activeId, pinsJson]);
 
   // Bring the active pin into the middle of the part of the map you can see
@@ -216,13 +321,42 @@ export default function StaysMap({
     map.panBy(at.subtract(target), { animate: !reducedMotion(), duration: 0.35 });
   }, [panKey]);
 
+  // Drive time for the arrow: the selected place's, else the range across the places
+  const pins = JSON.parse(pinsJson) as StayPin[];
+  const drives = (activeId ? pins.filter((p) => p.id === activeId) : pins).map((p) => p.driveMin).filter((n): n is number => !!n);
+  const lo = drives.length ? Math.min(...drives) : 0;
+  const hi = drives.length ? Math.max(...drives) : 0;
+  const drive = !lo ? "" : lo === hi ? `${lo}` : `${lo}–${hi}`;
+  const edgeText = drive ? t("map.toAirport", { n: drive }) : t("map.toAirportShort");
+
   return (
-    <div
-      ref={el}
-      role="region"
-      aria-label={label}
-      className={cn("relative isolate z-0 w-full overflow-hidden", className)}
-    />
+    <div className={cn("relative isolate z-0 w-full overflow-hidden", className)}>
+      <div ref={el} role="region" aria-label={label} className="h-full w-full" />
+      <button
+        type="button"
+        aria-pressed={withAirport}
+        onClick={() => setWithAirport((v) => !v)}
+        style={{ top: attributionTop ? 40 : 12 }}
+        className="absolute right-3 z-[1000] inline-flex min-h-11 items-center gap-2 rounded-full border bg-card px-4 text-base font-bold shadow"
+      >
+        <Plane className="h-5 w-5 shrink-0" aria-hidden />
+        {withAirport ? t("map.placesOnly") : t("map.showAirport")}
+      </button>
+      {edge && (
+        <button
+          ref={edgeEl}
+          type="button"
+          onClick={() => setWithAirport(true)}
+          aria-label={`${edgeText}. ${t("map.showAirport")}`}
+          style={{ left: edge.x, top: edge.y, transform: EDGE_SHIFT[edge.side] }}
+          className="absolute z-[900] inline-flex min-h-10 items-center gap-1.5 rounded-full bg-ink px-3 text-sm font-bold whitespace-nowrap text-bg shadow-lg"
+        >
+          <Plane className="h-4 w-4 shrink-0" aria-hidden />
+          {edgeText}
+          <ArrowRight className="h-4 w-4 shrink-0" style={{ transform: `rotate(${edge.angle}rad)` }} aria-hidden />
+        </button>
+      )}
+    </div>
   );
 }
 

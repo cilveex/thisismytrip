@@ -45,6 +45,7 @@ export function usePins(stays: Stay[], group: (who: Who) => string) {
       label: pinLabel(s),
       group: s.who,
       booked: s.booked,
+      driveMin: s.driveMin,
       title: [
         s.name,
         group(s.who),

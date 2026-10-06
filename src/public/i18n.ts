@@ -140,6 +140,10 @@ const en = {
   "price.trip": "With this option the trip costs {amount} per person.",
 
   "map.airport": "Tenerife South airport",
+  "map.showAirport": "Show airport",
+  "map.placesOnly": "Back to the places",
+  "map.toAirport": "Airport {n} min",
+  "map.toAirportShort": "Airport",
 
   "place.counter": "{i} of {n}",
   "place.prev": "Previous place",
@@ -327,6 +331,10 @@ const lv: Partial<Record<Key, string>> = {
   "price.trip": "Ar šo variantu ceļojums katram izmaksā {amount}.",
 
   "map.airport": "Tenerifes Dienvidu lidosta",
+  "map.showAirport": "Rādīt lidostu",
+  "map.placesOnly": "Atpakaļ pie vietām",
+  "map.toAirport": "Lidosta {n} min",
+  "map.toAirportShort": "Lidosta",
 
   "place.counter": "{i} no {n}",
   "place.prev": "Iepriekšējā vieta",

@@ -321,7 +321,7 @@ function Details({ stay: s, titleId, names }: { stay: Stay; titleId: string; nam
   const listing = /booking\.com$/.test(host) ? t("place.openBooking") : /airbnb\./.test(host) ? t("place.openAirbnb") : t("stay.listing");
   const pin =
     s.lat != null && s.lng != null
-      ? JSON.stringify([{ id: s.id, lat: s.lat, lng: s.lng, label: pinLabel(s), group: s.who, booked: s.booked, title: s.name }])
+      ? JSON.stringify([{ id: s.id, lat: s.lat, lng: s.lng, label: pinLabel(s), group: s.who, booked: s.booked, title: s.name, driveMin: s.driveMin }])
       : null;
   const facts: [ReactNode, string][] = [];
   if (s.seaMin != null && s.seaMin > 0) facts.push([<Waves key="s" className="h-6 w-6" />, tn("stay.sea", s.seaMin)]);
