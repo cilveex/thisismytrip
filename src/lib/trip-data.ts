@@ -35,7 +35,14 @@ export interface Apartment {
   address: string;
   /** Included on the public family page */
   showToFamily: boolean;
+  /** Up to MAX_PHOTOS image URLs (Supabase Storage uploads or pasted links). The first is the cover. */
+  photos: string[];
+  /** Note shown to the family. The planner's own `notes` stay private. */
+  noteLv: string;
+  noteEn: string;
 }
+
+export const MAX_PHOTOS = 5;
 
 export interface Item {
   id: string;
@@ -149,8 +156,10 @@ const it = (text: string, walk: Walk, cost = 0, people = 7, carTour = false): It
   ...(carTour ? { carTour } : {}),
 });
 
+export const AIRPORT = { code: "TFS", lat: 28.0445, lng: -16.5725 } as const;
+
 export const SIGHTS = [
-  { name: "TFS airport", lat: 28.0445, lng: -16.5725, kind: "airport" },
+  { name: "TFS airport", lat: AIRPORT.lat, lng: AIRPORT.lng, kind: "airport" },
   { name: "Mount Teide", lat: 28.2724, lng: -16.6425, kind: "peak" },
   { name: "Siam Park", lat: 28.0723, lng: -16.7262, kind: "sight" },
   { name: "Loro Parque", lat: 28.4084, lng: -16.5642, kind: "sight" },
@@ -314,6 +323,9 @@ export function normalizeState(raw: Partial<TripState> | null | undefined): Trip
       lng: null,
       address: "",
       showToFamily: false,
+      photos: [],
+      noteLv: "",
+      noteEn: "",
       ...a,
     }) as Apartment),
     ideas: raw.ideas ?? seed.ideas,

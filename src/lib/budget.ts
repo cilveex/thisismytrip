@@ -1,4 +1,4 @@
-import { NIGHTS, areaById, type Item, type TripState, type Who } from "./trip-data";
+import { NIGHTS, areaById, type Apartment, type Item, type TripState, type Who } from "./trip-data";
 
 export interface Scenario {
   areaId?: string;
@@ -61,6 +61,13 @@ export function computeBudget(s: TripState, sc: Scenario = {}) {
   lines.push({ key: "buffer", label: `Buffer ${b.bufferPct}%`, amount: (subtotal * b.bufferPct) / 100, color: "var(--cat-9)" });
   const total = lines.reduce((x, l) => x + l.amount, 0);
   return { lines, total, pool, left: pool - total, people, perPerson: people ? total / people : 0 };
+}
+
+/** The budget if this place were the one used for its group. Transfers follow the family's area. */
+export function budgetWithPlace(s: TripState, apt: Pick<Apartment, "id" | "who" | "area">) {
+  return apt.who === "family"
+    ? computeBudget(s, { areaId: apt.area, familyAptId: apt.id })
+    : computeBudget(s, { coupleAptId: apt.id });
 }
 
 /** "€1 234" — whole euros, no-break space as thousands separator, sign dropped (use leftLabel for direction). */

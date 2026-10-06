@@ -39,9 +39,12 @@ All three are bundled into the client and are public by design; access is enforc
 4. **Authentication → Sign In / Providers:** turn off "Allow new users to sign up".
 5. **Authentication → Users → your user:** copy the User UID.
 6. **SQL Editor:** open `supabase/migrations/002_admin_and_public.sql`, replace the zero UUID in `is_trip_admin()` (it appears once) with your UID, and run it. Safe to run again. If the zeros are left in, nobody is admin and nothing can be saved.
-7. Put the URL, anon key and admin email in `.env` (and in Vercel), then log in at `/plan`.
+7. **SQL Editor:** run `supabase/migrations/003_place_photos.sql` (the public `place-photos` Storage bucket: anyone can view, only the admin can upload and delete). Safe to run again.
+8. Put the URL, anon key and admin email in `.env` (and in Vercel), then log in at `/plan`.
 
-The `trips` table has two rows. `tenerife-2026` is the full plan: only the admin can read or write it. `tenerife-2026-public` is the family copy: anyone can read it, only the admin can write it. The planner rebuilds the public copy on every save, so it only ever contains flights, places marked "show to family", the family day texts, good-to-know tips and traveller names.
+The `trips` table has two rows. `tenerife-2026` is the full plan: only the admin can read or write it. `tenerife-2026-public` is the family copy: anyone can read it, only the admin can write it. The planner rebuilds the public copy on every save, so it only ever contains flights, places marked "show to family" (with their price, photos and family note, never the private notes), the family day texts, good-to-know tips and traveller names.
+
+Place photos (up to 5 per place) are resized in the browser to at most 1600px wide WebP (JPEG where WebP can't be encoded) and stored under `place-photos/<place id>/`. Removing a photo or deleting the place deletes its files. Pasted image links are stored as they are. Without Supabase, uploads are kept in the browser as data URLs.
 
 Without the Supabase variables the planner opens without a login and saves to this browser only (handy for development).
 

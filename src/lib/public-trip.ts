@@ -1,5 +1,5 @@
-import { areaById, type Flights, type GoodToKnow, type TripState, type Who } from "./trip-data";
-import { computeBudget } from "./budget";
+import { NIGHTS, areaById, type Apartment, type Flights, type GoodToKnow, type TripState, type Who } from "./trip-data";
+import { aptTotal, budgetWithPlace, computeBudget } from "./budget";
 
 /** Dev without Supabase: the public page reads the family copy from here */
 export const LOCAL_PUBLIC_KEY = "tenerife-trip-public-local";
@@ -7,8 +7,8 @@ export const LOCAL_PUBLIC_KEY = "tenerife-trip-public-local";
 /**
  * What the family page can see. Built from the private trip by the planner and saved to
  * the public row. A budget summary of the saved plan (never the sandbox) is included only when
- * "Show budget to family" is on. Never notes, place prices, estimate settings, unpublished places
- * or traveller notes.
+ * "Show budget to family" is on. Published places carry their price, photos and the family note.
+ * Never the planner's own notes, estimate settings, unpublished places or traveller notes.
  */
 export interface PublicTrip {
   v: 1;
@@ -29,11 +29,30 @@ export interface PublicTrip {
     booked: boolean;
     /** Walk to the other group's place, minutes */
     walkMin: number | null;
+    // Optional below: rows published before these existed won't have them
+    /** Drive from TFS airport, minutes (the area's estimate) */
+    driveMin?: number;
+    photos?: string[];
+    price?: PublicPrice;
+    note?: { lv: string; en: string };
   }[];
   days: { date: string; label: string; lv: string; en: string }[];
   goodToKnow: GoodToKnow[];
   /** Optional: rows published before it existed won't have it */
   budget?: PublicBudget;
+}
+
+export interface PublicPrice {
+  /** For all NIGHTS nights */
+  total: number;
+  perNight: number;
+  /** People staying there, and the total split between them */
+  people: number;
+  perPerson: number;
+  /** No price entered yet: the area's estimate */
+  estimate: boolean;
+  /** Whole-trip cost per person with this place in the budget. Only when the budget is shown to family. */
+  tripPerPerson?: number;
 }
 
 export interface PublicBudget {
@@ -59,6 +78,19 @@ function publicBudget(t: TripState): PublicBudget {
   };
 }
 
+function publicPrice(t: TripState, a: Apartment): PublicPrice {
+  const total = aptTotal(t, a.id, a.who, a.area);
+  const people = t.travellers.filter((x) => x.apt === a.who).length;
+  return {
+    total: Math.round(total),
+    perNight: Math.round(total / NIGHTS),
+    people,
+    perPerson: people ? Math.round(total / people) : Math.round(total),
+    estimate: a.total == null,
+    ...(t.showBudgetToFamily ? { tripPerPerson: Math.round(budgetWithPlace(t, a).perPerson) } : {}),
+  };
+}
+
 export function toPublic(t: TripState): PublicTrip {
   return {
     v: 1,
@@ -81,6 +113,10 @@ export function toPublic(t: TripState): PublicTrip {
         url: a.url,
         booked: a.status === "booked",
         walkMin: a.walkMin,
+        driveMin: areaById(t, a.area).driveMin,
+        photos: a.photos,
+        price: publicPrice(t, a),
+        ...(a.noteLv.trim() || a.noteEn.trim() ? { note: { lv: a.noteLv, en: a.noteEn } } : {}),
       })),
     days: t.days.map(({ date, label, lv, en }) => ({ date, label, lv, en })),
     goodToKnow: t.goodToKnow.filter((g) => g.lv.trim() || g.en.trim()),

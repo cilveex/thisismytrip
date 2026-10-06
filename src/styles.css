@@ -373,3 +373,56 @@ dialog.sheet[open] {
 html.public-page {
   font-size: 18px;
 }
+
+/* Public page: Tenerife South airport */
+.pin-tfs {
+  width: 40px;
+  height: 40px;
+  background: #1d2428;
+  color: #fff;
+  border: 3px solid #fff;
+}
+.pin-click {
+  cursor: pointer;
+}
+.leaflet-tooltip.tip-airport {
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 9999px;
+  background: #1d2428;
+  color: #fff;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 30%);
+}
+.leaflet-tooltip.tip-airport::before {
+  display: none;
+}
+
+/* Public page: place details. Full screen on phones; the panel inside is centred on wider screens. */
+dialog.place-dialog {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  overscroll-behavior: contain;
+}
+dialog.place-dialog::backdrop {
+  background: rgb(10 16 20 / 72%);
+}
+dialog.place-dialog[open] {
+  animation: sheet-up 0.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.place-dialog[open],
+  dialog.sheet[open] {
+    animation: none;
+  }
+}

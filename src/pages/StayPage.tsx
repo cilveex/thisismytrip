@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, type FormEvent } from "react";
 import { ExternalLink, Link2, MapPin, Plus, Trash2 } from "lucide-react";
 import { useTrip } from "@/lib/trip-store";
-import { aptTotal, choosePlanningArea, computeBudget, eur, groupLabel, splitStayWarning } from "@/lib/budget";
+import { aptTotal, budgetWithPlace, choosePlanningArea, computeBudget, eur, groupLabel, splitStayWarning } from "@/lib/budget";
 import { useImportant } from "@/lib/toast";
 import { InlineNotice } from "@/components/Toaster";
 import {
@@ -31,6 +31,8 @@ import {
 } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { parseLocation } from "@/lib/geo";
+import { deletePlacePhotos } from "@/lib/photos";
+import { PhotosField } from "@/components/PhotosField";
 
 const LocationMap = lazy(() => import("@/components/LocationMap"));
 
@@ -250,6 +252,9 @@ function AddPlace() {
       lng: null,
       address: "",
       showToFamily: false,
+      photos: [],
+      noteLv: "",
+      noteEn: "",
     };
     update((s) => {
       s.apartments.push(apt);
@@ -337,7 +342,7 @@ function AptCard({ apt }: { apt: Apartment }) {
   const key = apt.who === "family" ? "familyAptId" : "coupleAptId";
   const inUse = trip[key] === apt.id;
   const total = aptTotal(trip, apt.id, apt.who, apt.area);
-  const withThis = computeBudget(trip, { areaId: apt.area, [key]: apt.id });
+  const withThis = budgetWithPlace(trip, apt);
   const set = (patch: Partial<Apartment>) =>
     update((s) => {
       const a = s.apartments.find((x) => x.id === apt.id);
@@ -367,6 +372,7 @@ function AptCard({ apt }: { apt: Apartment }) {
               s.apartments = s.apartments.filter((x) => x.id !== apt.id);
               if (s[key] === apt.id) s[key] = null;
             });
+            void deletePlacePhotos(apt.id, apt.photos);
           }}
         >
           <Trash2 className="h-5 w-5" aria-hidden />
@@ -419,7 +425,8 @@ function AptCard({ apt }: { apt: Apartment }) {
           No price yet — using the area estimate, {eur(total)} for {NIGHTS} nights.
         </p>
       )}
-      <TextArea label="Notes" rows={2} value={apt.notes} onChange={(v) => set({ notes: v })} />
+      <TextArea label="Notes (private)" rows={2} value={apt.notes} onChange={(v) => set({ notes: v })} />
+      <PhotosField apt={apt} />
 
       <fieldset className="space-y-3 rounded-xl bg-soft/60 p-3">
         <legend className="sr-only">For the family page</legend>
@@ -430,6 +437,8 @@ function AptCard({ apt }: { apt: Apartment }) {
         />
         <TextField label="Address" value={apt.address} onChange={(address) => set({ address })} />
         <LocationField apt={apt} areaCenter={areaById(trip, apt.area)} onChange={(p) => set(p)} />
+        <TextArea label="Note for the family (LV)" rows={2} value={apt.noteLv} onChange={(noteLv) => set({ noteLv })} />
+        <TextArea label="Note for the family (EN)" rows={2} value={apt.noteEn} onChange={(noteEn) => set({ noteEn })} />
       </fieldset>
       {apt.url && (
         <a
