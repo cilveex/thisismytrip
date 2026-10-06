@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { SIGHTS, type Area } from "@/lib/trip-data";
 import { isTouch } from "@/lib/device";
+import { gateWheelZoom, zoomKeyLabel } from "@/lib/map-zoom";
 
 const ISLAND: L.LatLngBoundsExpression = [
   [27.99, -16.93],
@@ -88,7 +89,8 @@ export default function TenerifeMap({
     const touch = isTouch();
     const map = L.map(el.current, {
       zoomSnap: 0.25,
-      scrollWheelZoom: false,
+      // Only with Ctrl / ⌘ or a pinch: see gateWheelZoom
+      scrollWheelZoom: true,
       // With dragging off, Leaflet's CSS sets touch-action: pan-x pan-y, so the page keeps
       // scrolling under one finger. Pinch (touchZoom) also pans, so two fingers move the map.
       dragging: !touch,
@@ -108,11 +110,13 @@ export default function TenerifeMap({
     mapRef.current = map;
     layerRef.current = L.layerGroup().addTo(map);
     map.on("zoomend", () => layoutPins(map, pinsRef.current));
+    const wheel = gateWheelZoom(map, `Hold ${zoomKeyLabel()} and scroll to zoom`);
 
     const ro = new ResizeObserver(() => map.invalidateSize());
     ro.observe(el.current);
     return () => {
       ro.disconnect();
+      wheel.remove();
       map.remove();
       mapRef.current = null;
       layerRef.current = null;

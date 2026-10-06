@@ -589,3 +589,31 @@ dialog.compare-dialog[open] {
     animation: none;
   }
 }
+
+/* "Hold Ctrl and scroll to zoom", shown briefly over a map after a plain scroll */
+.map-zoom-hint {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgb(10 16 20 / 45%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-out;
+}
+.map-zoom-hint.show {
+  opacity: 1;
+}
+.map-zoom-hint > span {
+  max-width: 22rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  background: #1d2428;
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: center;
+}

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { gateWheelZoom, zoomKeyLabel } from "@/lib/map-zoom";
 
 /** Small map for picking a spot: tap to drop the pin. Dragging is on — it's a dedicated tool in a sheet. */
 export default function LocationMap({
@@ -23,6 +24,8 @@ export default function LocationMap({
   useEffect(() => {
     if (!el.current) return;
     const map = L.map(el.current, { scrollWheelZoom: true }).setView([center.lat, center.lng], value ? 16 : 14);
+    // The sheet scrolls too: a plain wheel scrolls it, Ctrl / ⌘ or a pinch zooms the map
+    const wheel = gateWheelZoom(map, `Hold ${zoomKeyLabel()} and scroll to zoom`);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -35,6 +38,7 @@ export default function LocationMap({
     const t = setTimeout(() => map.invalidateSize(), 250);
     return () => {
       clearTimeout(t);
+      wheel.remove();
       map.remove();
       mapRef.current = null;
       markerRef.current = null;

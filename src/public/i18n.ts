@@ -144,6 +144,7 @@ const en = {
   "map.placesOnly": "Back to the places",
   "map.toAirport": "Airport {n} min",
   "map.toAirportShort": "Airport",
+  "map.zoomHint": "Hold {key} and scroll to zoom",
 
   "place.counter": "{i} of {n}",
   "place.prev": "Previous place",
@@ -335,6 +336,7 @@ const lv: Partial<Record<Key, string>> = {
   "map.placesOnly": "Atpakaļ pie vietām",
   "map.toAirport": "Lidosta {n} min",
   "map.toAirportShort": "Lidosta",
+  "map.zoomHint": "Lai tuvinātu, turiet {key} un ritiniet",
 
   "place.counter": "{i} no {n}",
   "place.prev": "Iepriekšējā vieta",

@@ -3,6 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { ArrowRight, Plane } from "lucide-react";
 import { isTouch } from "@/lib/device";
+import { gateWheelZoom, zoomKeyLabel } from "@/lib/map-zoom";
 import { AIRPORT, type Who } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
 import { useI18n } from "./i18n";
@@ -104,6 +105,13 @@ export default function StaysMap({
   const pad = useRef(padBottom);
   const coveredTop = useRef(coveredTopProp);
   const { t } = useI18n();
+  const hintText = t("map.zoomHint", { key: zoomKeyLabel() });
+  const hint = useRef(hintText);
+  const wheel = useRef<ReturnType<typeof gateWheelZoom> | null>(null);
+  useEffect(() => {
+    hint.current = hintText;
+    wheel.current?.setHint(hintText);
+  }, [hintText]);
   const [withAirport, setWithAirport] = useState(false);
   const airport = useRef(withAirport);
   /** Where the airport arrow sits, when the airport is off-screen */
@@ -186,7 +194,8 @@ export default function StaysMap({
   useEffect(() => {
     if (!el.current) return;
     const map = L.map(el.current, {
-      scrollWheelZoom: false,
+      // Only with Ctrl / ⌘ or a pinch: see gateWheelZoom
+      scrollWheelZoom: true,
       // With dragging off, Leaflet's CSS sets touch-action: pan-x pan-y, so the page keeps
       // scrolling under one finger. Pinch (touchZoom) also pans, so two fingers move the map.
       dragging: !isTouch(),
@@ -205,10 +214,13 @@ export default function StaysMap({
     layerRef.current = L.layerGroup().addTo(map);
     map.on("zoomend", () => layout(map, pinsRef.current, active.current));
     map.on("move zoom resize", () => placeEdge.current());
+    wheel.current = gateWheelZoom(map, hint.current);
     const ro = new ResizeObserver(() => map.invalidateSize());
     ro.observe(el.current);
     return () => {
       ro.disconnect();
+      wheel.current?.remove();
+      wheel.current = null;
       map.remove();
       mapRef.current = null;
       layerRef.current = null;
