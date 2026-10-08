@@ -5,6 +5,7 @@ import { eur } from "@/lib/budget";
 import { NIGHTS, type Who } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
 import { PlaceCover, PlaceDialog } from "./PlaceDialog";
+import { FavBadge } from "./FavBadge";
 import { CompareDialog } from "./Compare";
 import { useI18n } from "./i18n";
 import { hasSpot, mapsUrl, pinLabel, sortStays, useCompare, useGroups, useMedia, usePins, type Stay } from "./stay-format";
@@ -288,18 +289,20 @@ function PhoneCard({ stay: s, who, active, onOpen }: { stay: Stay; who: string; 
       onClick={onOpen}
       className={cn(
         "surface flex h-full min-h-36 w-full overflow-hidden text-left transition-shadow",
+        s.favourite && "border-accent border-2",
         active && "ring-3 ring-ink",
       )}
     >
       <span className="relative block w-28 shrink-0">
         <PlaceCover stay={s} small className="h-full w-full" />
         {s.booked && (
-          <span className="absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-good px-2 py-0.5 text-sm font-bold text-on-good">
+          <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-good px-2 py-0.5 text-sm font-bold text-on-good">
             <CircleCheck className="h-4 w-4" aria-hidden /> {t("stay.booked")}
           </span>
         )}
       </span>
       <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2">
+        {s.favourite && <FavBadge who={s.who} className="mb-0.5 !px-2 !text-sm" />}
         <span className="line-clamp-2 font-display text-lg leading-tight font-extrabold">{s.name}</span>
         <span className="flex items-center gap-1.5 text-base text-muted">
           <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", `sw-${s.who}`)} aria-hidden />
@@ -347,7 +350,7 @@ function DeskCard({
       onMouseLeave={() => onHot(false)}
       onFocus={() => onHot(true)}
       onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && onHot(false)}
-      className={cn("surface relative flex flex-col overflow-hidden transition-shadow lg:flex-row", hot && "ring-3 ring-ink")}
+      className={cn("surface relative flex flex-col overflow-hidden transition-shadow lg:flex-row", s.favourite && "border-accent border-2", hot && "ring-3 ring-ink")}
     >
       <div className="relative shrink-0 lg:w-48">
         <PlaceCover stay={s} className="aspect-[16/9] h-full w-full lg:aspect-auto" />
@@ -359,6 +362,7 @@ function DeskCard({
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-5">
         <div>
+          {s.favourite && <FavBadge who={s.who} className="mb-2" />}
           <h3 className="text-2xl font-extrabold break-words">{s.name}</h3>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-base">
             <span className="flex items-center gap-1.5 font-bold">

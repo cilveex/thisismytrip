@@ -1,7 +1,7 @@
 import { useId } from "react";
-import { Clock, Plane, Plus, Trash2 } from "lucide-react";
+import { Briefcase, Clock, Plane, Plus, Trash2 } from "lucide-react";
 import { formatLocal, hasTime, leaveAt, meetAt } from "@/lib/flights";
-import { uid, type Flight, type FlightNote, type Flights, type GoodToKnow, type Traveller } from "@/lib/trip-data";
+import { uid, type Flight, type FlightNote, type Flights, type GoodToKnow, type Luggage, type Traveller } from "@/lib/trip-data";
 import { Button, NumField, SelectField, TextArea, TextField } from "@/components/ui";
 
 type Patch<T> = (p: Partial<T>) => void;
@@ -95,6 +95,37 @@ function FlightCard({
   );
 }
 
+function LuggageFields({ luggage, onChange }: { luggage: Luggage; onChange: Patch<Luggage> }) {
+  return (
+    <div className="space-y-3 rounded-xl border p-3">
+      <h3 className="flex items-center gap-2 text-lg font-extrabold">
+        <Briefcase className="h-5 w-5 text-primary" aria-hidden /> Luggage (per person)
+      </h3>
+      <div className="grid grid-cols-2 gap-3">
+        <TextField
+          label="Personal item size"
+          value={luggage.personalSize}
+          onChange={(personalSize) => onChange({ personalSize })}
+          placeholder="40 × 30 × 15"
+        />
+        <TextField
+          label="Cabin bag size"
+          value={luggage.cabinSize}
+          onChange={(cabinSize) => onChange({ cabinSize })}
+          placeholder="55 × 40 × 23"
+        />
+        <NumField
+          label="Total combined weight"
+          suffix="kg"
+          value={luggage.totalKg}
+          onChange={(v) => onChange({ totalKg: v ?? 0 })}
+        />
+      </div>
+      <p className="text-sm text-muted">Sizes in cm. The family page shows them under the tickets.</p>
+    </div>
+  );
+}
+
 export function FlightsSection({
   flights,
   travellers,
@@ -125,6 +156,10 @@ export function FlightsSection({
           }}
         />
       </div>
+      <LuggageFields
+        luggage={flights.luggage}
+        onChange={(p) => onChange({ ...flights, luggage: { ...flights.luggage, ...p } })}
+      />
       <FlightNotes
         notes={flights.notes}
         travellers={travellers}

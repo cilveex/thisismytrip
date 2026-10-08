@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import { Link } from "react-router";
-import { CalendarPlus, CircleCheck, CircleDashed, Footprints, Info, MapPin, Plane, PlaneLanding, PlaneTakeoff, Users } from "lucide-react";
+import { Briefcase, CalendarPlus, CircleCheck, CircleDashed, Compass, Footprints, Info, Luggage, MapPin, Plane, PlaneLanding, PlaneTakeoff, Scale, ShoppingBag, Users } from "lucide-react";
 import { usePublicTrip } from "@/lib/public-store";
 import type { PublicTrip } from "@/lib/public-trip";
 import { eur } from "@/lib/budget";
@@ -11,12 +11,15 @@ import { DEPARTURE, NIGHTS, type Flight } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
 import { I18nProvider } from "./I18nProvider";
 import { Stays } from "./Stays";
+import { AreaGallery } from "./AreaGallery";
+import { AREA_PHOTOS } from "@/lib/area-photos";
 import { listJoin } from "./stay-format";
 import { isKey, useI18n, type Lang } from "./i18n";
 
 const SECTIONS = [
   { id: "flights", key: "nav.flights" },
   { id: "stay", key: "nav.stay" },
+  { id: "why", key: "nav.why" },
   { id: "days", key: "nav.days" },
   { id: "budget", key: "nav.budget" },
   { id: "info", key: "nav.info" },
@@ -39,7 +42,8 @@ function Page() {
   }, []);
   const { t } = useI18n();
   const sections = SECTIONS.filter(
-    (s) => (s.id !== "info" || !!trip?.goodToKnow.length) && (s.id !== "budget" || !!trip?.budget),
+    (s) => (s.id !== "info" || !!trip?.goodToKnow.length) &&
+      (s.id !== "why" || hasWhy(trip)) && (s.id !== "budget" || !!trip?.budget),
   );
 
   return (
@@ -62,6 +66,7 @@ function Page() {
           <div className="mt-14 space-y-16 md:mt-16 md:space-y-20">
             <Flights trip={trip} />
             <StaySection trip={trip} />
+            {hasWhy(trip) && <Why trip={trip} />}
             <Days trip={trip} />
             {trip.budget && <Budget trip={trip} />}
             {trip.goodToKnow.length > 0 && <GoodToKnow trip={trip} />}
@@ -257,18 +262,64 @@ function BigTime({ label, dt, airport }: { label: string; dt: string; airport: s
   );
 }
 
-function FlightCard({ title, f: flight, children }: { title: string; f: Flight; children: ReactNode }) {
+/**
+ * A boarding pass: route and flight on top, a perforated tear line, then the times on the stub.
+ * The tear line's notches are semicircles in the page colour on both edges.
+ */
+function BoardingPass({ title, f: flight, children }: { title: string; f: Flight; children: ReactNode }) {
+  const { t } = useI18n();
+  const f = useFmt();
+  const from = flight.from.toUpperCase();
+  const to = flight.to.toUpperCase();
   const name = [flight.airline, flight.number].filter(Boolean).join(" ");
   return (
-    <article className="surface space-y-4 p-5 md:p-6">
-      <header className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <h3 className="text-3xl font-extrabold">{title}</h3>
-        <p className="text-lg text-muted">
-          {[name, `${flight.from} → ${flight.to}`].filter(Boolean).join(" · ")}
-        </p>
-      </header>
-      {children}
+    <article
+      className="surface relative overflow-hidden"
+      aria-label={`${title}: ${t("pass.route", { from: f.airport(from), to: f.airport(to) })}`}
+    >
+      <div className="bg-primary px-5 py-2 text-on-primary">
+        <h3 className="flex items-center gap-2 text-lg font-extrabold tracking-wide uppercase">
+          <Plane className="h-5 w-5" aria-hidden /> {title}
+        </h3>
+      </div>
+      <div className="p-5 md:p-6">
+        <div className="flex items-center gap-3" aria-hidden>
+          <Code code={from} city={f.airport(from)} />
+          <div className="relative flex min-w-8 flex-1 items-center text-primary">
+            <span className="h-0.5 flex-1 bg-current opacity-40" />
+            <Plane className="mx-1 h-7 w-7 shrink-0 rotate-90 md:h-8 md:w-8" />
+            <span className="h-0.5 flex-1 bg-current opacity-40" />
+          </div>
+          <Code code={to} city={f.airport(to)} align="right" />
+        </div>
+        <dl className="mt-5 grid grid-cols-2 gap-4">
+          <div>
+            <dt className="text-sm font-bold tracking-wide text-muted uppercase">{t("pass.flight")}</dt>
+            <dd className="text-xl font-extrabold">{name || "–"}</dd>
+          </div>
+          <div>
+            <dt className="text-sm font-bold tracking-wide text-muted uppercase">{t("pass.date")}</dt>
+            <dd className="text-xl font-extrabold">{hasTime(flight.depart) ? f.short(flight.depart) : "–"}</dd>
+          </div>
+        </dl>
+      </div>
+      {/* Tear line: dashed rule with a notch cut out of each edge */}
+      <div className="relative h-0" aria-hidden>
+        <span className="absolute inset-x-5 top-0 border-t-2 border-dashed border-line" />
+        <span className="absolute top-0 -left-3.5 h-7 w-7 -translate-y-1/2 rounded-full border bg-bg" />
+        <span className="absolute top-0 -right-3.5 h-7 w-7 -translate-y-1/2 rounded-full border bg-bg" />
+      </div>
+      <div className="space-y-4 bg-soft/50 p-5 pt-6 md:p-6 md:pt-7">{children}</div>
     </article>
+  );
+}
+
+function Code({ code, city, align }: { code: string; city: string; align?: "right" }) {
+  return (
+    <div className={align === "right" ? "text-right" : ""}>
+      <p className="font-display text-5xl leading-none font-extrabold tracking-wide md:text-6xl">{code}</p>
+      <p className="mt-1 text-base text-muted">{city}</p>
+    </div>
   );
 }
 
@@ -297,7 +348,7 @@ function Flights({ trip }: { trip: PublicTrip }) {
         <span>{t("flights.tzNote")}</span>
       </p>
       <div className="grid gap-6 md:grid-cols-2">
-        <FlightCard title={t("flights.there")} f={out}>
+        <BoardingPass title={t("flights.there")} f={out}>
           {hasTime(out.depart) ? (
             <>
               <BigTime label={f.meet(out.from)} dt={outMeet} airport={out.from} />
@@ -310,8 +361,8 @@ function Flights({ trip }: { trip: PublicTrip }) {
             <p className="text-muted">{t("flights.notYet")}</p>
           )}
           <FlightNotes trip={trip} />
-        </FlightCard>
-        <FlightCard title={t("flights.back")} f={back}>
+        </BoardingPass>
+        <BoardingPass title={t("flights.back")} f={back}>
           {hasTime(back.depart) ? (
             <>
               <BigTime label={t("flights.leave")} dt={leave} airport={back.from} />
@@ -324,8 +375,9 @@ function Flights({ trip }: { trip: PublicTrip }) {
           ) : (
             <p className="text-muted">{t("flights.notYet")}</p>
           )}
-        </FlightCard>
+        </BoardingPass>
       </div>
+      {trip.flights.luggage && <LuggageBlock lug={trip.flights.luggage} />}
       {anyTime && (
         <div className="mt-6">
           <button
@@ -339,6 +391,46 @@ function Flights({ trip }: { trip: PublicTrip }) {
         </div>
       )}
     </Section>
+  );
+}
+
+/** Per person: two bags and one weight limit, easy to scan */
+function LuggageBlock({ lug }: { lug: NonNullable<PublicTrip["flights"]["luggage"]> }) {
+  const { t } = useI18n();
+  const rows: { icon: ReactNode; label: string; detail?: string }[] = [
+    { icon: <ShoppingBag className="h-7 w-7" />, label: t("lug.personal"), detail: lug.personalSize.trim() ? t("lug.size", { size: lug.personalSize.trim() }) : undefined },
+    { icon: <Briefcase className="h-7 w-7" />, label: t("lug.cabin"), detail: lug.cabinSize.trim() ? t("lug.size", { size: lug.cabinSize.trim() }) : undefined },
+    ...(lug.totalKg > 0 ? [{ icon: <Scale className="h-7 w-7" />, label: t("lug.weight", { kg: lug.totalKg }) }] : []),
+  ];
+  return (
+    <section className="mt-6" aria-labelledby="lug-h">
+      <div className="surface p-5 md:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <h3 id="lug-h" className="flex items-center gap-2 text-2xl font-extrabold">
+            <Luggage className="h-6 w-6 text-primary" aria-hidden /> {t("lug.title")}
+          </h3>
+          <p className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-0.5 text-base font-extrabold text-[#1d2428]">
+            <Users className="h-4 w-4" aria-hidden /> {t("lug.perPerson")}
+          </p>
+        </div>
+        <ul className="mt-4 space-y-3">
+          {rows.map((r, i) => (
+            <li key={i} className="flex items-center gap-4 rounded-2xl bg-soft p-4">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-card text-primary" aria-hidden>
+                {r.icon}
+              </span>
+              <span className="min-w-0">
+                <span className="block text-lg leading-snug font-extrabold">{r.label}</span>
+                {r.detail && <span className="block text-lg whitespace-nowrap tabular-nums">{r.detail}</span>}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 flex items-center gap-2 text-base text-muted">
+          <Info className="h-5 w-5 shrink-0 text-primary" aria-hidden /> {t("lug.tip")}
+        </p>
+      </div>
+    </section>
   );
 }
 
@@ -386,6 +478,22 @@ function StaySection({ trip }: { trip: PublicTrip }) {
   return (
     <Section id="stay" title={anyBooked || !trip.stays.length ? t("stay.title") : t("stay.considering")} icon={<MapPin className="h-6 w-6" />}>
       {trip.stays.length ? <Stays trip={trip} /> : <p className="text-xl">{t("stay.none")}</p>}
+    </Section>
+  );
+}
+
+/* ---------------- Why here ---------------- */
+
+const hasWhy = (trip: PublicTrip | null) => !!trip && (!!trip.why?.lv.trim() || !!trip.why?.en.trim());
+
+function Why({ trip }: { trip: PublicTrip }) {
+  const { t, lang } = useI18n();
+  const w = trip.why!;
+  const text = (lang === "lv" ? w.lv : w.en) || w.en || w.lv;
+  return (
+    <Section id="why" title={t("why.title")} icon={<Compass className="h-6 w-6" />}>
+      <p className="text-xl leading-relaxed whitespace-pre-line">{text}</p>
+      {AREA_PHOTOS.length > 0 && <AreaGallery />}
     </Section>
   );
 }

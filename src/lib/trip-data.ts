@@ -45,6 +45,8 @@ export interface Apartment {
   /** Note shown to the family. The planner's own `notes` stay private. */
   noteLv: string;
   noteEn: string;
+  /** One favourite per group (family / couple), shown first and badged on the family page */
+  favourite: boolean;
 }
 
 export const MAX_PHOTOS = 5;
@@ -89,11 +91,19 @@ export interface FlightNote {
   en: string;
 }
 
+/** Per person. Sizes are free text, e.g. "55 × 40 × 23". */
+export interface Luggage {
+  personalSize: string;
+  cabinSize: string;
+  totalKg: number;
+}
+
 export interface Flights {
   outbound: Flight;
   /** transferMin: apartment → airport, so we can say when to leave */
   return: Flight & { transferMin: number };
   notes: FlightNote[];
+  luggage: Luggage;
 }
 
 export interface GoodToKnow {
@@ -139,6 +149,8 @@ export interface TripState {
   goodToKnow: GoodToKnow[];
   /** Include the budget summary on the public family page */
   showBudgetToFamily: boolean;
+  /** "Why here" text on the family page */
+  why: { lv: string; en: string };
 }
 
 export const NIGHTS = 7;
@@ -149,6 +161,13 @@ export const PUBLIC_TRIP_ID = "tenerife-2026-public";
 
 export const DEFAULT_DAY_LV = "Pastaigājam, ēdam un atpūšamies pie okeāna.";
 export const DEFAULT_DAY_EN = "Walk a bit, eat and rest by the ocean.";
+
+export const DEFAULT_WHY_LV =
+  "No visām vietām, ko esam apmeklējuši, šī mums patika visvairāk. Puerto de Santiago un Los Gigantes ir mierīga, skaista salas rietumu piekraste – bez lielo kūrortu burzmas, bet ar kafejnīcām, veikaliem un okeānu turpat blakus. Virs mazās ostas paceļas milzīgās Los Gigantes klintis, Playa de la Arena pludmalē ir melnas vulkāniskās smiltis, un vakaros saule riet okeānā ar La Gomeras salu pie horizonta. Un dzīvot šeit ir krietni lētāk nekā lielajos kūrortos dienvidos.";
+export const DEFAULT_WHY_EN =
+  "Of all the places we've visited, this one felt the best. Puerto de Santiago and Los Gigantes are a calm, beautiful stretch of the island's west coast: away from the big resort crowds, but with cafés, shops and the ocean right on the doorstep. The huge Los Gigantes cliffs rise above a small harbour, Playa de la Arena has black volcanic sand, and in the evening the sun sets into the ocean with the island of La Gomera on the horizon. And staying here costs noticeably less than in the big resorts further south.";
+
+export const defaultLuggage = (): Luggage => ({ personalSize: "40 × 30 × 15", cabinSize: "55 × 40 × 23", totalKg: 8 });
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
 
@@ -188,6 +207,7 @@ export const defaultFlights = (): Flights => ({
   outbound: blankFlight("RIX", "TFS"),
   return: { ...blankFlight("TFS", "RIX"), transferMin: 30 },
   notes: [],
+  luggage: defaultLuggage(),
 });
 
 const dayDefaults = (days: Omit<Day, "lv" | "en">[]): Day[] =>
@@ -258,6 +278,7 @@ export function seedState(): TripState {
     flights: defaultFlights(),
     goodToKnow: [],
     showBudgetToFamily: false,
+    why: { lv: DEFAULT_WHY_LV, en: DEFAULT_WHY_EN },
   };
 }
 
@@ -334,6 +355,7 @@ export function normalizeState(raw: Partial<TripState> | null | undefined): Trip
       photos: [],
       noteLv: "",
       noteEn: "",
+      favourite: false,
       ...a,
     }) as Apartment),
     ideas: raw.ideas ?? seed.ideas,
@@ -342,8 +364,10 @@ export function normalizeState(raw: Partial<TripState> | null | undefined): Trip
       outbound: { ...seed.flights.outbound, ...(fl.outbound ?? {}) },
       return: { ...seed.flights.return, ...(fl.return ?? {}) },
       notes: fl.notes ?? [],
+      luggage: { ...seed.flights.luggage, ...(fl.luggage ?? {}) },
     },
     goodToKnow: raw.goodToKnow ?? [],
     showBudgetToFamily: raw.showBudgetToFamily ?? false,
+    why: { ...seed.why, ...(raw.why ?? {}) },
   };
 }

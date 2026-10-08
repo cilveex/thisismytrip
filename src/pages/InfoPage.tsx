@@ -93,6 +93,33 @@ export default function InfoPage() {
         </Button>
       </section>
 
+      <section className="surface space-y-3 p-4 md:p-5" aria-labelledby="why-h">
+        <h2 id="why-h" className="text-2xl font-extrabold">
+          Why here
+        </h2>
+        <p className="text-muted">Shown on the family page between “Where we stay” and the days. Leave both empty to hide it.</p>
+        <TextArea
+          label="Text (LV)"
+          rows={6}
+          value={trip.why.lv}
+          onChange={(lv) =>
+            update((s) => {
+              s.why.lv = lv;
+            })
+          }
+        />
+        <TextArea
+          label="Text (EN)"
+          rows={6}
+          value={trip.why.en}
+          onChange={(en) =>
+            update((s) => {
+              s.why.en = en;
+            })
+          }
+        />
+      </section>
+
       <GoodToKnowSection
         items={trip.goodToKnow}
         onChange={(goodToKnow) =>

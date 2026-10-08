@@ -14,7 +14,9 @@ export const LOCAL_PUBLIC_KEY = "tenerife-trip-public-local";
 export interface PublicTrip {
   v: 1;
   updatedAt: string;
-  flights: Omit<Flights, "notes">;
+  flights: Omit<Flights, "notes" | "luggage"> & { luggage?: Flights["luggage"] };
+  /** "Why here" text. Optional: rows published before it existed won't have it */
+  why?: { lv: string; en: string };
   /** Travellers on a different flight */
   flightNotes?: { name: string; lv: string; en: string }[];
   travellers: { name: string; apt: Who }[];
@@ -42,6 +44,7 @@ export interface PublicTrip {
     photos?: string[];
     price?: PublicPrice;
     note?: { lv: string; en: string };
+    favourite?: boolean;
   }[];
   days: { date: string; label: string; lv: string; en: string }[];
   goodToKnow: GoodToKnow[];
@@ -102,7 +105,8 @@ export function toPublic(t: TripState): PublicTrip {
   return {
     v: 1,
     updatedAt: new Date().toISOString(),
-    flights: { outbound: t.flights.outbound, return: t.flights.return },
+    flights: { outbound: t.flights.outbound, return: t.flights.return, luggage: t.flights.luggage },
+    why: t.why,
     flightNotes: t.flights.notes
       .filter((n) => n.lv.trim() || n.en.trim())
       .map((n) => ({ name: t.travellers.find((x) => x.id === n.travellerId)?.name ?? "", lv: n.lv, en: n.en })),
@@ -127,6 +131,7 @@ export function toPublic(t: TripState): PublicTrip {
         seaMin: a.seaMin,
         photos: a.photos,
         price: publicPrice(t, a),
+        ...(a.favourite ? { favourite: true } : {}),
         ...(a.noteLv.trim() || a.noteEn.trim() ? { note: { lv: a.noteLv, en: a.noteEn } } : {}),
       })),
     days: t.days.map(({ date, label, lv, en }) => ({ date, label, lv, en })),

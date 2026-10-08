@@ -20,6 +20,7 @@ export interface StayPin {
   label: string;
   group: Who;
   booked: boolean;
+  favourite?: boolean;
   /** Read out for the pin, e.g. "Casa Sol, €1 400, booked" */
   title: string;
   /** Drive from the airport, minutes, for the edge arrow */
@@ -246,8 +247,8 @@ export default function StaysMap({
         className: "sp-root",
         html:
           `<span class="sp-leader"></span><span class="sp-dot"></span>` +
-          `<span class="sp-pos"><span class="sp-pill sp-${p.group}${p.booked ? " sp-booked" : ""}${tappable ? " sp-click" : ""}">` +
-          `${p.booked ? '<span class="sp-check" aria-hidden="true">✓</span>' : ""}${esc(p.label)}</span></span>`,
+          `<span class="sp-pos"><span class="sp-pill sp-${p.group}${p.booked ? " sp-booked" : ""}${p.favourite ? " sp-fav" : ""}${tappable ? " sp-click" : ""}">` +
+          `${p.favourite ? '<span class="sp-star" aria-hidden="true">★</span>' : ""}${p.booked ? '<span class="sp-check" aria-hidden="true">✓</span>' : ""}${esc(p.label)}</span></span>`,
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       });
