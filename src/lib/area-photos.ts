@@ -11,7 +11,6 @@ export interface AreaPhoto {
 }
 
 export const AREA_PHOTOS: AreaPhoto[] = [
-  { file: "01-beach-palm.webp", alt: { lv: "Palma uz melnu smilšu pludmales", en: "Palm tree on a dark-sand beach" } },
   { file: "02-los-gigantes-cliffs.webp", alt: { lv: "Los Gigantes klintis pie okeāna", en: "The Los Gigantes cliffs rising from the ocean" } },
   { file: "03-colourful-lane.webp", alt: { lv: "Krāsainas mājas šaurā ielā ar okeānu galā", en: "A narrow lane of colourful houses with the ocean at the end" } },
   { file: "04-rock-pools.webp", alt: { lv: "Klinšu baseini pie okeāna", en: "Rocky ocean pools along the coast" } },

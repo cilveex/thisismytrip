@@ -164,32 +164,40 @@ function Lightbox({
       onClose={() => isOpen && onClose()}
     >
       {photo && (
-        <div className="flex h-full flex-col text-white" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-          <header className="flex shrink-0 items-center justify-between px-3 pt-[env(safe-area-inset-top)]">
-            <p className="px-2 text-lg font-bold tabular-nums" aria-live="polite">
+        <div
+          className="flex h-full items-center justify-center p-4 md:p-8"
+          onClick={(e) => e.target === e.currentTarget && onClose()}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
+          <div className="relative overflow-hidden rounded-[1.5rem] bg-[#0b1114] shadow-2xl">
+            <img
+              key={photo.file}
+              src={areaFull(photo)}
+              alt={alt(photo)}
+              draggable={false}
+              className="block max-h-[85dvh] max-w-[calc(100vw-2rem)] object-contain select-none md:max-w-[90vw]"
+            />
+            <p
+              className="absolute top-3 left-3 rounded-full bg-black/60 px-3 py-1 text-base font-bold text-white tabular-nums"
+              aria-live="polite"
+            >
               {t("area.counter", { i: index! + 1, n })}
             </p>
             <button
               type="button"
               onClick={onClose}
               aria-label={t("area.close")}
-              className="grid h-12 w-12 place-items-center rounded-full hover:bg-white/15"
+              className="absolute top-2 right-2 grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"
             >
-              <X className="h-7 w-7" aria-hidden />
+              <X className="h-6 w-6" aria-hidden />
             </button>
-          </header>
-          <div className="relative flex min-h-0 flex-1 items-center justify-center" onClick={(e) => e.target === e.currentTarget && onClose()}>
-            <img
-              key={photo.file}
-              src={areaFull(photo)}
-              alt={alt(photo)}
-              draggable={false}
-              className="max-h-full max-w-full object-contain select-none"
-            />
             <Arrow dir="prev" disabled={index === 0} onClick={prev} label={t("area.prev")} />
             <Arrow dir="next" disabled={index === n - 1} onClick={next} label={t("area.next")} />
+            <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-4 pt-8 pb-3 text-center text-base text-white">
+              {alt(photo)}
+            </p>
           </div>
-          <p className="shrink-0 px-4 pt-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-center text-base opacity-90">{alt(photo)}</p>
         </div>
       )}
     </dialog>
@@ -204,11 +212,11 @@ function Arrow({ dir, disabled, onClick, label }: { dir: "prev" | "next"; disabl
       disabled={disabled}
       aria-label={label}
       className={cn(
-        "absolute top-1/2 hidden h-14 w-14 -translate-y-1/2 place-items-center rounded-full bg-white/15 hover:bg-white/30 disabled:invisible md:grid",
-        dir === "prev" ? "left-4" : "right-4",
+        "absolute top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:invisible md:h-12 md:w-12",
+        dir === "prev" ? "left-2" : "right-2",
       )}
     >
-      {dir === "prev" ? <ChevronLeft className="h-8 w-8" aria-hidden /> : <ChevronRight className="h-8 w-8" aria-hidden />}
+      {dir === "prev" ? <ChevronLeft className="h-7 w-7" aria-hidden /> : <ChevronRight className="h-7 w-7" aria-hidden />}
     </button>
   );
 }
