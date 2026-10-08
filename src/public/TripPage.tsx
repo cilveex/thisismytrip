@@ -47,7 +47,7 @@ function Page() {
   );
 
   return (
-    <div className="min-h-dvh text-[1.125rem] leading-relaxed">
+    <div className="min-h-dvh text-[1.1333rem] leading-relaxed md:text-[1.125rem]">
       <a
         href="#top"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[2000] focus:rounded focus:bg-card focus:p-3"
@@ -56,14 +56,14 @@ function Page() {
       </a>
       <TopBar sections={trip ? sections : []} />
 
-      <main id="top" className="mx-auto max-w-3xl px-4 pt-5 pb-10 md:px-6">
+      <main id="top" className="mx-auto max-w-3xl px-4 pt-4 pb-8 md:px-6 md:pt-5 md:pb-10">
         <Hero trip={trip} />
         {!trip ? (
           <p className="py-16 text-center text-xl" role="status">
             {status === "loading" ? t("status.loading") : status === "error" ? t("status.error") : t("status.empty")}
           </p>
         ) : (
-          <div className="mt-14 space-y-16 md:mt-16 md:space-y-20">
+          <div className="mt-12 space-y-14 md:mt-16 md:space-y-20">
             <Flights trip={trip} />
             <StaySection trip={trip} />
             {hasWhy(trip) && <Why trip={trip} />}
@@ -90,18 +90,18 @@ function TopBar({ sections }: { sections: readonly { id: string; key: (typeof SE
   const { t, lang, setLang } = useI18n();
   return (
     <header className="sticky top-0 z-[1100] border-b bg-bg/95 pt-[env(safe-area-inset-top)] backdrop-blur">
-      <div className="mx-auto flex max-w-3xl items-center gap-2 px-2 md:px-4">
+      <div className="mx-auto flex max-w-3xl items-center gap-1 px-2 md:gap-2 md:px-4">
         {/* Scrolls sideways on narrow phones; the fade on the right hints there's more */}
         <nav
           aria-label={t("nav.label")}
           className="min-w-0 flex-1 overflow-x-auto [mask-image:linear-gradient(to_right,black_80%,transparent)] [scrollbar-width:none] md:[mask-image:none]"
         >
-          <ul className="flex gap-1 py-1.5">
+          <ul className="flex gap-0.5 py-0.5 md:gap-1 md:py-1.5">
             {sections.map((s) => (
               <li key={s.id} className="shrink-0">
                 <a
                   href={`#${s.id}`}
-                  className="inline-flex min-h-11 items-center rounded-full px-3 text-base font-bold whitespace-nowrap hover:bg-soft"
+                  className="inline-flex min-h-[44px] items-center rounded-full px-2.5 text-base font-bold whitespace-nowrap hover:bg-soft md:px-3"
                 >
                   {t(s.key)}
                 </a>
@@ -109,6 +109,7 @@ function TopBar({ sections }: { sections: readonly { id: string; key: (typeof SE
             ))}
           </ul>
         </nav>
+        {/* Looks 36px tall on phones; each button's tap area is padded out to 44px */}
         <div role="group" aria-label={t("lang.label")} className="flex shrink-0 rounded-full bg-soft p-1">
           {(["lv", "en"] as Lang[]).map((l) => (
             <button
@@ -118,7 +119,7 @@ function TopBar({ sections }: { sections: readonly { id: string; key: (typeof SE
               aria-pressed={lang === l}
               onClick={() => setLang(l)}
               className={cn(
-                "min-h-11 min-w-11 rounded-full px-2 text-base font-extrabold uppercase",
+                "relative h-[1.9rem] min-w-9 rounded-full px-2 text-sm font-extrabold uppercase after:absolute after:-inset-x-[5px] after:-inset-y-[8px] after:content-[''] md:h-auto md:min-h-11 md:min-w-11 md:text-base md:after:hidden",
                 lang === l ? "bg-card shadow" : "text-muted",
               )}
             >
@@ -142,7 +143,7 @@ function Hero({ trip }: { trip: PublicTrip | null }) {
   const days = daysUntilDeparture();
   const people = trip?.travellers.length ?? 0;
   return (
-    <section className="bg-hero relative isolate overflow-hidden rounded-[2rem] px-6 py-10 md:px-12 md:py-16" aria-labelledby="hero-h">
+    <section className="bg-hero relative isolate overflow-hidden rounded-[1.5rem] px-5 py-7 md:rounded-[2rem] md:px-12 md:py-16" aria-labelledby="hero-h">
       {/* Decorative photo: eager and high priority, it's the first thing people see */}
       <img
         src="/hero/los-gigantes-1000.webp"
@@ -158,15 +159,15 @@ function Hero({ trip }: { trip: PublicTrip | null }) {
       />
       <div className="hero-shade absolute inset-0 -z-10" aria-hidden />
       <p className="text-lg font-bold opacity-90">{t("hero.kicker")}</p>
-      <h1 id="hero-h" className="mt-1 text-6xl font-extrabold md:text-8xl">
+      <h1 id="hero-h" className="mt-1 text-[2.9rem] leading-none font-extrabold md:text-8xl">
         {t("hero.title")}
       </h1>
-      <p className="mt-3 text-2xl font-bold md:text-3xl">{range}</p>
-      <p className="mt-8 inline-block rounded-full bg-accent px-5 py-2 font-display text-2xl font-extrabold text-on-accent md:text-3xl">
+      <p className="mt-2 text-2xl font-bold md:mt-3 md:text-3xl">{range}</p>
+      <p className="mt-6 inline-block rounded-full bg-accent px-5 py-2 font-display text-2xl font-extrabold text-on-accent md:mt-8 md:text-3xl">
         {phase === "before" ? tn("hero.days", days) : t(`hero.${phase}`)}
       </p>
       {people > 0 && (
-        <p className="mt-4 text-xl opacity-95">
+        <p className="mt-3 text-xl opacity-95 md:mt-4">
           {tn("hero.people", people)}, {tn("hero.nights", NIGHTS)}
         </p>
       )}
@@ -179,8 +180,8 @@ function Hero({ trip }: { trip: PublicTrip | null }) {
 function Section({ id, title, icon, children }: { id: string; title: string; icon: ReactNode; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-h`} className="scroll-mt-20">
-      <h2 id={`${id}-h`} className="mb-6 flex items-center gap-3 text-4xl font-extrabold md:text-5xl">
-        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-soft text-primary" aria-hidden>
+      <h2 id={`${id}-h`} className="mb-4 flex items-center gap-2.5 text-[2.1rem] font-extrabold md:mb-6 md:gap-3 md:text-5xl">
+        <span className="grid h-10 w-10 shrink-0 md:h-12 md:w-12 place-items-center rounded-full bg-soft text-primary" aria-hidden>
           {icon}
         </span>
         {title}
@@ -247,7 +248,7 @@ function TimeRow({ icon, label, dt, airport }: { icon: ReactNode; label: string;
   const f = useFmt();
   if (!hasTime(dt)) return null;
   return (
-    <li className="flex items-start gap-3 py-3">
+    <li className="flex items-start gap-3 py-2 md:py-3">
       <span className="mt-1 text-muted" aria-hidden>
         {icon}
       </span>
@@ -256,7 +257,7 @@ function TimeRow({ icon, label, dt, airport }: { icon: ReactNode; label: string;
         <p className="text-base text-muted">{f.short(dt)}</p>
       </div>
       <p className="text-right">
-        <span className="block font-display text-3xl font-extrabold tabular-nums">{hhmm(dt)}</span>
+        <span className="block font-display text-[1.6rem] font-extrabold tabular-nums md:text-3xl">{hhmm(dt)}</span>
         <span className="block text-base text-muted">{f.tz(airport)}</span>
       </p>
     </li>
@@ -266,9 +267,9 @@ function TimeRow({ icon, label, dt, airport }: { icon: ReactNode; label: string;
 function BigTime({ label, dt, airport }: { label: string; dt: string; airport: string }) {
   const f = useFmt();
   return (
-    <div className="rounded-2xl bg-accent/25 p-5">
+    <div className="rounded-2xl bg-accent/25 p-3.5 md:p-5">
       <p className="text-lg font-bold">{label}</p>
-      <p className="font-display text-6xl leading-none font-extrabold tabular-nums md:text-7xl">{hhmm(dt)}</p>
+      <p className="font-display text-[2.9rem] leading-none font-extrabold tabular-nums md:text-7xl">{hhmm(dt)}</p>
       <p className="mt-2 text-lg">
         {f.date(dt)} · <strong>{f.tz(airport)}</strong>
       </p>
@@ -291,12 +292,12 @@ function BoardingPass({ title, f: flight, children }: { title: string; f: Flight
       className="surface relative overflow-hidden"
       aria-label={`${title}: ${t("pass.route", { from: f.airport(from), to: f.airport(to) })}`}
     >
-      <div className="bg-primary px-5 py-2 text-on-primary">
+      <div className="bg-primary px-3.5 py-1.5 text-on-primary md:px-5 md:py-2">
         <h3 className="flex items-center gap-2 text-lg font-extrabold tracking-wide uppercase">
           <Plane className="h-5 w-5" aria-hidden /> {title}
         </h3>
       </div>
-      <div className="p-5 md:p-6">
+      <div className="p-3.5 md:p-6">
         <div className="flex items-center gap-3" aria-hidden>
           <Code code={from} city={f.airport(from)} />
           <div className="relative flex min-w-8 flex-1 items-center text-primary">
@@ -319,11 +320,11 @@ function BoardingPass({ title, f: flight, children }: { title: string; f: Flight
       </div>
       {/* Tear line: dashed rule with a notch cut out of each edge */}
       <div className="relative h-0" aria-hidden>
-        <span className="absolute inset-x-5 top-0 border-t-2 border-dashed border-line" />
+        <span className="absolute inset-x-3.5 top-0 border-t-2 md:inset-x-5 border-dashed border-line" />
         <span className="absolute top-0 -left-3.5 h-7 w-7 -translate-y-1/2 rounded-full border bg-bg" />
         <span className="absolute top-0 -right-3.5 h-7 w-7 -translate-y-1/2 rounded-full border bg-bg" />
       </div>
-      <div className="space-y-4 bg-soft/50 p-5 pt-6 md:p-6 md:pt-7">{children}</div>
+      <div className="space-y-3 bg-soft/50 p-3.5 pt-5 md:space-y-4 md:p-6 md:pt-7">{children}</div>
     </article>
   );
 }
@@ -331,7 +332,7 @@ function BoardingPass({ title, f: flight, children }: { title: string; f: Flight
 function Code({ code, city, align }: { code: string; city: string; align?: "right" }) {
   return (
     <div className={align === "right" ? "text-right" : ""}>
-      <p className="font-display text-5xl leading-none font-extrabold tracking-wide md:text-6xl">{code}</p>
+      <p className="font-display text-[2.7rem] leading-none font-extrabold tracking-wide md:text-6xl">{code}</p>
       <p className="mt-1 text-base text-muted">{city}</p>
     </div>
   );
@@ -418,7 +419,7 @@ function LuggageBlock({ lug }: { lug: NonNullable<PublicTrip["flights"]["luggage
   ];
   return (
     <section className="mt-6" aria-labelledby="lug-h">
-      <div className="surface p-5 md:p-6">
+      <div className="surface p-3.5 md:p-6">
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
           <h3 id="lug-h" className="flex items-center gap-2 text-2xl font-extrabold">
             <Luggage className="h-6 w-6 text-primary" aria-hidden /> {t("lug.title")}
@@ -429,7 +430,7 @@ function LuggageBlock({ lug }: { lug: NonNullable<PublicTrip["flights"]["luggage
         </div>
         <ul className="mt-4 space-y-3">
           {rows.map((r, i) => (
-            <li key={i} className="flex items-center gap-4 rounded-2xl bg-soft p-4">
+            <li key={i} className="flex items-center gap-3 rounded-2xl bg-soft p-3 md:gap-4 md:p-4">
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-card text-primary" aria-hidden>
                 {r.icon}
               </span>
@@ -519,7 +520,7 @@ function Days({ trip }: { trip: PublicTrip }) {
   const last = trip.days.length - 1;
   return (
     <Section id="days" title={t("days.title")} icon={<Footprints className="h-6 w-6" />}>
-      <ol className="space-y-3">
+      <ol className="space-y-2 md:space-y-3">
         {trip.days.map((d, i) => {
           const date = new Date(d.date + "T12:00:00Z");
           const travel = i === 0 || i === last;
@@ -527,13 +528,13 @@ function Days({ trip }: { trip: PublicTrip }) {
           return (
             <li
               key={d.date}
-              className={cn("flex gap-4 rounded-2xl p-4 md:gap-6 md:p-5", travel ? "bg-accent/25" : "surface")}
+              className={cn("flex gap-3 rounded-2xl p-2.5 md:gap-6 md:p-5", travel ? "bg-accent/25" : "surface")}
             >
-              <div className="w-16 shrink-0 text-center md:w-20">
+              <div className="w-14 shrink-0 text-center md:w-20">
                 <p className="text-base font-bold text-muted capitalize">
                   {date.toLocaleDateString(locale, { timeZone: "UTC", weekday: "short" })}
                 </p>
-                <p className="font-display text-4xl leading-none font-extrabold tabular-nums">{date.getUTCDate()}</p>
+                <p className="font-display text-[1.8rem] leading-none font-extrabold tabular-nums md:text-4xl">{date.getUTCDate()}</p>
                 <p className="text-base text-muted">{date.toLocaleDateString(locale, { timeZone: "UTC", month: "short" })}</p>
               </div>
               <div className="min-w-0 flex-1 self-center">
@@ -565,8 +566,8 @@ function Budget({ trip }: { trip: PublicTrip }) {
   };
   return (
     <Section id="budget" title={t("budget.title")} icon={<CircleCheck className="h-6 w-6" />}>
-      <div className="surface p-6 md:p-8">
-        <p className="font-display text-6xl font-extrabold tabular-nums md:text-7xl">{eur(b.perPerson)}</p>
+      <div className="surface p-4 md:p-8">
+        <p className="font-display text-[2.9rem] leading-none font-extrabold tabular-nums md:text-7xl">{eur(b.perPerson)}</p>
         <p className="text-2xl font-bold">{t("budget.perPerson")}</p>
         <p className="mt-4 text-xl">{tn("budget.totalFor", b.people, { amount: eur(b.total) })}</p>
         <p className="text-xl">{t("budget.pool", { amount: eur(b.poolPerPerson) })}</p>
@@ -602,7 +603,7 @@ function GoodToKnow({ trip }: { trip: PublicTrip }) {
     <Section id="info" title={t("info.title")} icon={<Info className="h-6 w-6" />}>
       <ul className="space-y-3">
         {trip.goodToKnow.map((g) => (
-          <li key={g.id} className="surface flex gap-3 p-5 text-lg">
+          <li key={g.id} className="surface flex gap-3 p-3.5 text-lg md:p-5">
             <CircleCheck className="mt-1 h-6 w-6 shrink-0 text-good" aria-hidden />
             <span>{(lang === "lv" ? g.lv : g.en) || g.en || g.lv}</span>
           </li>

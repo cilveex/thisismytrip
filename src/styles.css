@@ -389,6 +389,13 @@ dialog.sheet[open] {
 html.public-page {
   font-size: 18px;
 }
+/* Phones: smaller base, as a percentage so the phone's own text-size setting still applies.
+   Body ≈ 17px, secondary ≈ 15px, smallest ≈ 13px; every rem-based size follows. */
+@media (max-width: 767px) {
+  html.public-page {
+    font-size: 93.75%;
+  }
+}
 
 /* Public page: Tenerife South airport */
 .pin-tfs {
@@ -491,6 +498,58 @@ dialog.place-dialog[open] {
   transform: translateX(-50%);
   transform-origin: 50% calc(100% + 8px);
   transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+/* Phones: smaller pills */
+@media (max-width: 767px) {
+  .sp-pill {
+    padding: 2px 8px;
+    font-size: 13px;
+  }
+  .leaflet-container .leaflet-control-attribution {
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 1.3;
+    opacity: 0.85;
+  }
+}
+/* Compact map: ordinary places are small dots; the price shows when selected */
+.sp-mini {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  width: 14px;
+  height: 14px;
+  box-sizing: border-box;
+  border-radius: 9999px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 40%);
+  visibility: hidden;
+  cursor: pointer;
+}
+/* A 44px tap area around the dot */
+.sp-mini::before {
+  content: "";
+  position: absolute;
+  inset: -15px;
+}
+.sp-collapsed .sp-mini {
+  visibility: visible;
+}
+.sp-collapsed .sp-pos {
+  visibility: hidden;
+  pointer-events: none;
+}
+.sp-mini-family {
+  background: #1f5f8b;
+}
+.sp-mini-couple {
+  background: #f2c230;
+}
+.sp-mini-booked {
+  background: #3e6b48;
+}
+.sp-mini-fav {
+  border-color: #e2457a;
 }
 /* Tail pointing at the spot */
 .sp-pill::after {

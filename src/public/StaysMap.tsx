@@ -41,6 +41,8 @@ const FRAME_TL: [number, number] = [56, 76];
 const FRAME_BR: [number, number] = [56, 40];
 /** Gap between the edge arrow and the map's edge, px */
 const EDGE_GAP = 10;
+/** Keep the arrow this far above the map's bottom edge, clear of the credits */
+const EDGE_BOTTOM = 28;
 /** Keep the arrow's centre this far from the corners when it sits on the top or bottom edge */
 const EDGE_HALF_W = 110;
 /** Keep the arrow below the zoom buttons and the "Show airport" button */
@@ -74,6 +76,7 @@ export default function StaysMap({
   padBottom = 0,
   coveredTop: coveredTopProp,
   attributionTop = false,
+  compact = false,
   className,
 }: {
   pinsJson: string;
@@ -93,12 +96,15 @@ export default function StaysMap({
   coveredTop?: () => number;
   /** Credits top right, when the bottom edge is covered */
   attributionTop?: boolean;
+  /** Phones: small dots for ordinary places; full price pills only for the selected, booked and favourite ones, and none stacked */
+  compact?: boolean;
   className?: string;
 }) {
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const layerRef = useRef<L.LayerGroup | null>(null);
-  const pinsRef = useRef<{ id: string; marker: L.Marker; latlng: L.LatLng }[]>([]);
+  const pinsRef = useRef<PinRef[]>([]);
+  const compactRef = useRef(compact);
   const framed = useRef("");
   const tappable = !!onPinClick;
   const cb = useRef({ onPinClick, onPinHover });
@@ -124,6 +130,7 @@ export default function StaysMap({
     pad.current = padBottom;
     coveredTop.current = coveredTopProp;
     airport.current = withAirport;
+    compactRef.current = compact;
   });
 
   /** Fit the places (and the airport, when asked) into the part of the map you can see */
@@ -152,7 +159,7 @@ export default function StaysMap({
     if (at.x >= 0 && at.x <= size.x && at.y >= 0 && at.y <= h) return setEdge(null);
     // Walk from the middle towards the airport until we reach the inset box; the arrow sits
     // flush against the side it crosses, so it never pokes into the middle of the map
-    const box = { x0: EDGE_GAP, x1: size.x - EDGE_GAP, y0: EDGE_TOP, y1: Math.max(EDGE_TOP, h - EDGE_GAP) };
+    const box = { x0: EDGE_GAP, x1: size.x - EDGE_GAP, y0: EDGE_TOP, y1: Math.max(EDGE_TOP, h - EDGE_BOTTOM) };
     const c = L.point((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2);
     const d = at.subtract(c);
     const kx = d.x > 0 ? (box.x1 - c.x) / d.x : d.x < 0 ? (box.x0 - c.x) / d.x : Infinity;
@@ -171,7 +178,8 @@ export default function StaysMap({
     const ah = edgeEl.current?.offsetHeight ?? 40;
     const origin = el.current!.getBoundingClientRect();
     const pills = pinsRef.current.flatMap((p) => {
-      const r = p.marker.getElement()?.querySelector(".sp-pill")?.getBoundingClientRect();
+      const root = p.marker.getElement();
+      const r = root?.querySelector(root.classList.contains("sp-collapsed") ? ".sp-mini" : ".sp-pill")?.getBoundingClientRect();
       return r ? [{ l: r.left - origin.left, r: r.right - origin.left, t: r.top - origin.top, b: r.bottom - origin.top }] : [];
     });
     const rectAt = (x: number, y: number) => {
@@ -206,14 +214,14 @@ export default function StaysMap({
     });
     // A starting view, so pins can be laid out right away; the pins effect frames them properly
     map.setView([AIRPORT.lat, AIRPORT.lng], 11);
-    L.control.attribution({ position: attributionTop ? "topright" : "bottomright" }).addTo(map);
+    L.control.attribution({ position: attributionTop ? "topright" : "bottomright", prefix: compact ? false : undefined }).addTo(map);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     }).addTo(map);
     mapRef.current = map;
     layerRef.current = L.layerGroup().addTo(map);
-    map.on("zoomend", () => layout(map, pinsRef.current, active.current));
+    map.on("zoomend", () => layout(map, pinsRef.current, active.current, compactRef.current));
     map.on("move zoom resize", () => placeEdge.current());
     wheel.current = gateWheelZoom(map, hint.current);
     const ro = new ResizeObserver(() => map.invalidateSize());
@@ -227,7 +235,7 @@ export default function StaysMap({
       layerRef.current = null;
       framed.current = "";
     };
-  }, [attributionTop]);
+  }, [attributionTop, compact]);
 
   // Pins
   useEffect(() => {
@@ -247,12 +255,14 @@ export default function StaysMap({
         className: "sp-root",
         html:
           `<span class="sp-leader"></span><span class="sp-dot"></span>` +
+          `<span class="sp-mini sp-mini-${p.group}${p.booked ? " sp-mini-booked" : ""}${p.favourite ? " sp-mini-fav" : ""}"></span>` +
           `<span class="sp-pos"><span class="sp-pill sp-${p.group}${p.booked ? " sp-booked" : ""}${p.favourite ? " sp-fav" : ""}${tappable ? " sp-click" : ""}">` +
           `${p.favourite ? '<span class="sp-star" aria-hidden="true">★</span>' : ""}${p.booked ? '<span class="sp-check" aria-hidden="true">✓</span>' : ""}${esc(p.label)}</span></span>`,
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       });
-      const marker = L.marker([p.lat, p.lng], { icon, title: "", keyboard: tappable, interactive: tappable }).addTo(g);
+      const base = p.booked ? 200 : p.favourite ? 100 : 0;
+      const marker = L.marker([p.lat, p.lng], { icon, title: "", keyboard: tappable, interactive: tappable, zIndexOffset: base }).addTo(g);
       const root = marker.getElement();
       if (root) {
         root.setAttribute("aria-label", p.title);
@@ -286,12 +296,12 @@ export default function StaysMap({
           cb.current.onPinHover?.(null);
         });
       }
-      return { id: p.id, marker, latlng: L.latLng(p.lat, p.lng) };
+      return { id: p.id, marker, latlng: L.latLng(p.lat, p.lng), base, rank: p.booked ? 1 : p.favourite ? 2 : 3 };
     });
-    layout(map, pinsRef.current, active.current);
+    layout(map, pinsRef.current, active.current, compactRef.current);
     // Pill widths change once the display font arrives
     let live = true;
-    void document.fonts?.ready.then(() => live && layout(map, pinsRef.current, active.current));
+    void document.fonts?.ready.then(() => live && layout(map, pinsRef.current, active.current, compactRef.current));
 
     // Frame when the set of spots changes (not on a language switch or a price edit)
     const spots = JSON.stringify(pins.map((p) => [p.lat, p.lng]));
@@ -303,7 +313,7 @@ export default function StaysMap({
     return () => {
       live = false;
     };
-  }, [pinsJson, airportLabel, tappable, previews]);
+  }, [pinsJson, airportLabel, tappable, previews, compact]);
 
   // "Show airport" toggled: zoom out to it, or back to the places
   const toggled = useRef(false);
@@ -320,12 +330,12 @@ export default function StaysMap({
     const map = mapRef.current;
     if (!map) return;
     for (const p of pinsRef.current) {
-      p.marker.setZIndexOffset(p.id === activeId ? 1000 : 0);
+      p.marker.setZIndexOffset(p.id === activeId ? 1000 : p.base);
       p.marker.getElement()?.querySelector(".sp-pill")?.classList.toggle("sp-active", p.id === activeId);
     }
-    layout(map, pinsRef.current, activeId);
+    layout(map, pinsRef.current, activeId, compactRef.current);
     placeEdge.current();
-  }, [activeId, pinsJson]);
+  }, [activeId, pinsJson, compact]);
 
   // Centre the active pill in the part of the map you can see: below the page's sticky top bar
   // (when the map's top is scrolled under it) and above whatever covers the bottom edge
@@ -362,10 +372,11 @@ export default function StaysMap({
         aria-pressed={withAirport}
         onClick={() => setWithAirport((v) => !v)}
         style={{ top: attributionTop ? 40 : 12 }}
-        className="absolute right-3 z-[1000] inline-flex min-h-11 items-center gap-2 rounded-full border bg-card px-4 text-base font-bold shadow"
+        title={withAirport ? t("map.placesOnly") : t("map.showAirport")}
+        className="absolute right-3 z-[1000] inline-flex h-10 w-10 items-center justify-center gap-2 rounded-full border bg-card text-base font-bold shadow md:h-auto md:min-h-11 md:w-auto md:px-4"
       >
         <Plane className="h-5 w-5 shrink-0" aria-hidden />
-        {withAirport ? t("map.placesOnly") : t("map.showAirport")}
+        <span className="sr-only md:not-sr-only">{withAirport ? t("map.placesOnly") : t("map.showAirport")}</span>
       </button>
       {edge && (
         <button
@@ -374,10 +385,13 @@ export default function StaysMap({
           onClick={() => setWithAirport(true)}
           aria-label={`${edgeText}. ${t("map.showAirport")}`}
           style={{ left: edge.x, top: edge.y, transform: EDGE_SHIFT[edge.side] }}
-          className="absolute z-[900] inline-flex min-h-10 items-center gap-1.5 rounded-full bg-ink px-3 text-sm font-bold whitespace-nowrap text-bg shadow-lg"
+          className="absolute z-[900] inline-flex min-h-8 items-center gap-1 rounded-full bg-ink px-2.5 text-[0.8667rem] font-bold whitespace-nowrap text-bg shadow-lg md:min-h-10 md:gap-1.5 md:px-3 md:text-sm"
         >
           <Plane className="h-4 w-4 shrink-0" aria-hidden />
-          {edgeText}
+          <span className="md:hidden" aria-hidden>
+            {drive ? `${drive} min` : t("map.toAirportShort")}
+          </span>
+          <span className="max-md:hidden">{edgeText}</span>
           <ArrowRight className="h-4 w-4 shrink-0" style={{ transform: `rotate(${edge.angle}rad)` }} aria-hidden />
         </button>
       )}
@@ -389,7 +403,51 @@ export default function StaysMap({
  * Push overlapping pills apart in screen space, like the planner map (here only up/down). The active pill stays on its
  * true spot; a moved pill gets a dot on its spot and a line to it. Previews follow the pill.
  */
-function layout(map: L.Map, pins: { id: string; marker: L.Marker; latlng: L.LatLng }[], activeId: string | null) {
+interface PinRef {
+  id: string;
+  marker: L.Marker;
+  latlng: L.LatLng;
+  /** Stacking order of the marker when it isn't selected */
+  base: number;
+  /** 1 booked, 2 favourite, 3 other: only 1 and 2 get a full pill in compact mode */
+  rank: number;
+}
+
+/**
+ * Compact (phones): no stacking. The selected place, then booked, then favourite places get a
+ * price pill at their true spot; any pill that would touch one already placed becomes a dot,
+ * and so does every other place.
+ */
+function layoutCompact(map: L.Map, pins: PinRef[], activeId: string | null) {
+  const order = pins
+    .map((p, i) => ({ p, i, rank: p.id === activeId ? 0 : p.rank }))
+    .sort((a, b) => a.rank - b.rank || a.i - b.i);
+  const placed: { x: number; y: number; w: number; h: number }[] = [];
+  for (const { p, rank } of order) {
+    const root = p.marker.getElement();
+    const pill = root?.querySelector<HTMLElement>(".sp-pill");
+    const pos = root?.querySelector<HTMLElement>(".sp-pos");
+    const leader = root?.querySelector<HTMLElement>(".sp-leader");
+    const dot = root?.querySelector<HTMLElement>(".sp-dot");
+    if (!root) continue;
+    if (pos) pos.style.transform = "";
+    if (leader) leader.style.display = "none";
+    if (dot) dot.style.display = "none";
+    const s = rank === 0 ? ACTIVE_SCALE : 1;
+    const w = (pill?.offsetWidth ?? 70) * s;
+    const h = (pill?.offsetHeight ?? 26) * s;
+    const pt = map.latLngToLayerPoint(p.latlng);
+    const box = { x: pt.x, y: pt.y - TAIL - h / 2, w, h };
+    const hit = placed.some((o) => Math.abs(o.x - box.x) < (o.w + box.w) / 2 + GAP && Math.abs(o.y - box.y) < (o.h + box.h) / 2 + GAP);
+    const dotOnly = rank === 3 || hit;
+    root.classList.toggle("sp-collapsed", dotOnly);
+    if (!dotOnly) placed.push(box);
+  }
+}
+
+function layout(map: L.Map, pins: PinRef[], activeId: string | null, compact = false) {
+  if (compact) return layoutCompact(map, pins, activeId);
+  for (const p of pins) p.marker.getElement()?.classList.remove("sp-collapsed");
   const els = pins.map((p) => {
     const root = p.marker.getElement();
     return {

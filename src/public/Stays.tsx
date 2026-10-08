@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Car, CircleCheck, CircleDashed, Columns3, ExternalLink, Footprints, Hand, Images, MapPin, Star, Waves } from "lucide-react";
 import type { PublicTrip } from "@/lib/public-trip";
 import { eur } from "@/lib/budget";
@@ -166,21 +166,25 @@ export function Stays({ trip }: { trip: PublicTrip }) {
 /** Above the map: what the pin colours and the star mean. Compact chips that wrap on phones. */
 function MapLegend({ groups, group }: { groups: Who[]; group: (who: Who) => string }) {
   const { t } = useI18n();
-  const chip = "inline-flex items-center gap-2 rounded-full bg-soft px-3 py-1 text-base leading-snug font-bold";
+  const chip =
+    "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-soft px-2.5 py-0.5 text-[0.8667rem] leading-snug font-bold whitespace-nowrap md:gap-2 md:px-3 md:py-1 md:text-base";
   return (
-    <ul aria-label={t("stay.legend")} className="mb-3 flex flex-wrap gap-2">
+    <ul
+      aria-label={t("stay.legend")}
+      className="-mx-4 mb-2 flex gap-1.5 overflow-x-auto px-4 pb-0.5 [scrollbar-width:none] md:mx-0 md:mb-3 md:flex-wrap md:gap-2 md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden"
+    >
       {groups.map((w) => (
         <li key={w} className={chip}>
-          <span className={cn("h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow", `sw-${w}`)} aria-hidden />
+          <span className={cn("h-3 w-3 shrink-0 rounded-full border-2 border-white shadow md:h-3.5 md:w-3.5", `sw-${w}`)} aria-hidden />
           {group(w)}
         </li>
       ))}
       <li className={chip}>
-        <span className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow sw-booked" aria-hidden />
+        <span className="h-3 w-3 shrink-0 rounded-full border-2 border-white shadow md:h-3.5 md:w-3.5 sw-booked" aria-hidden />
         {t("legend.booked")}
       </li>
       <li className={chip}>
-        <Star className="h-4 w-4 shrink-0 fill-fav text-fav" aria-hidden />
+        <Star className="h-3.5 w-3.5 shrink-0 fill-fav text-fav md:h-4 md:w-4" aria-hidden />
         {t("fav.label")}
       </li>
     </ul>
@@ -215,11 +219,11 @@ function useOnlyPicked() {
 
 function MobileStays({
   stays,
-  group,
   pinKey,
   active,
   panKey,
   scrollReq,
+  group,
   onSettle,
   onPin,
   onOpen,
@@ -238,20 +242,10 @@ function MobileStays({
 }) {
   const { t } = useI18n();
   const scroller = useRef<HTMLUListElement>(null);
-  const overlay = useRef<HTMLDivElement>(null);
-  const [overlayH, setOverlayH] = useState(200);
   const idle = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [swiped, setSwiped] = useSwiped();
   const n = stays.length;
   const current = Math.min(active, n - 1);
-
-  // How much of the map the cards cover, so pins stay in the part you can see
-  useLayoutEffect(() => {
-    const el = overlay.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setOverlayH(el.offsetHeight));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
 
   useEffect(() => () => void (idle.current && clearTimeout(idle.current)), []);
 
@@ -284,31 +278,41 @@ function MobileStays({
     idle.current = setTimeout(() => onSettle(nearest()), 120);
   };
 
-  const cards = (
-    <div className={cn(pinKey && "pointer-events-none absolute inset-x-0 bottom-0 z-[500]")} ref={overlay}>
+  return (
+    <>
+      {pinKey && (
+        <div className="relative -mx-4 h-[68svh] max-h-[40rem] min-h-[22rem] overflow-hidden">
+          <Suspense fallback={mapFallback("h-full")}>
+            <StaysMap
+              pinsJson={pinKey}
+              label={t("stay.mapLabel")}
+              airportLabel={t("map.airport")}
+              activeId={stays[current]?.id ?? null}
+              onPinClick={onPin}
+              panKey={panKey}
+              coveredTop={stickyBottom}
+              compact
+              className="h-full border-y"
+            />
+          </Suspense>
+        </div>
+      )}
       {n > 1 && (
-        <p
-          className="pointer-events-auto mb-2 ml-4 inline-flex items-center gap-2 rounded-full bg-card/95 px-3 py-1 text-base font-bold tabular-nums shadow"
-          aria-hidden
-        >
-          <span className="flex gap-1.5">
-            {stays.map((s, i) => (
-              <span key={s.id} className={cn("h-2.5 w-2.5 rounded-full", i === current ? "bg-ink" : "bg-ink/25")} />
-            ))}
-          </span>
+        <p className="mt-2 mb-1 text-sm font-bold text-muted tabular-nums" aria-hidden>
           {current + 1} / {n}
         </p>
       )}
       <ul
         ref={scroller}
         onScroll={onScroll}
+        onTouchMove={() => !swiped && setSwiped()}
         aria-label={t("stay.cards")}
-        className="pointer-events-auto relative flex snap-x snap-mandatory scroll-px-4 gap-3 overflow-x-auto overscroll-x-contain px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className="relative -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto overscroll-x-contain px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {stays.map((s, i) => (
           <li
             key={s.id}
-            className="flex w-[86%] max-w-[24rem] shrink-0 snap-start"
+            className="flex w-[88%] max-w-[22rem] shrink-0 snap-start"
             aria-roledescription="slide"
             aria-label={t("place.counter", { i: i + 1, n })}
           >
@@ -316,76 +320,82 @@ function MobileStays({
           </li>
         ))}
       </ul>
-    </div>
-  );
-
-  if (!pinKey) return cards;
-
-  return (
-    <>
-      <div className="relative -mx-4 h-[76svh] max-h-[46rem] min-h-[30rem] overflow-hidden">
-        <Suspense fallback={mapFallback("h-full")}>
-          <StaysMap
-            pinsJson={pinKey}
-            label={t("stay.mapLabel")}
-            airportLabel={t("map.airport")}
-            activeId={stays[current]?.id ?? null}
-            onPinClick={onPin}
-            panKey={panKey}
-            padBottom={overlayH}
-            coveredTop={stickyBottom}
-            attributionTop
-            className="h-full border-y"
-          />
-        </Suspense>
-        {cards}
-      </div>
-      <p className="mt-2 flex items-center gap-2 text-base text-muted">
-        <Hand className="h-5 w-5 shrink-0" aria-hidden /> {t("stay.cardsHint")}
-      </p>
+      {pinKey && n > 1 && !swiped && (
+        <p className="mt-2 flex items-center gap-2 text-[0.9333rem] text-muted">
+          <Hand className="h-4 w-4 shrink-0" aria-hidden /> {t("stay.cardsHint")}
+        </p>
+      )}
     </>
   );
+}
+
+const SWIPED_KEY = "tenerife-swiped-cards";
+
+/** Has this device swiped the cards once? Then the hint goes away for good. */
+function useSwiped() {
+  const [swiped, set] = useState(() => {
+    try {
+      return localStorage.getItem(SWIPED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  return [
+    swiped,
+    () => {
+      set(true);
+      try {
+        localStorage.setItem(SWIPED_KEY, "1");
+      } catch {
+        /* private mode: just this visit */
+      }
+    },
+  ] as const;
 }
 
 /** Bottom of the page's sticky top bar, so the map can centre pins below it */
 const stickyBottom = () => document.querySelector("header.sticky")?.getBoundingClientRect().bottom ?? 0;
 
 function PhoneCard({ stay: s, who, active, onOpen }: { stay: Stay; who: string; active: boolean; onOpen: () => void }) {
-  const { t, tn } = useI18n();
+  const { t } = useI18n();
   const p = s.price;
   return (
     <button
       type="button"
       onClick={onOpen}
       className={cn(
-        "surface flex h-full min-h-36 w-full overflow-hidden text-left transition-shadow",
-       
+        "surface flex h-[6.5rem] w-full overflow-hidden text-left transition-shadow",
         active && "ring-3 ring-ink",
       )}
     >
-      <span className="relative block w-28 shrink-0">
+      <span className="block aspect-square h-full shrink-0">
         <PlaceCover stay={s} small className="h-full w-full" />
-        {s.booked && (
-          <span className="absolute bottom-2 left-2 inline-flex items-center gap-1 rounded-full bg-good px-2 py-0.5 text-sm font-bold text-on-good">
-            <CircleCheck className="h-4 w-4" aria-hidden /> {t("stay.booked")}
-          </span>
-        )}
       </span>
-      <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2">
-        {s.favourite && <FavBadge className="mb-0.5 !px-2 !text-sm" />}
-        <span className="line-clamp-2 font-display text-lg leading-tight font-extrabold">{s.name}</span>
+      <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-2.5 py-1.5">
+        <span className="flex items-center gap-1.5">
+          <span className="truncate font-display text-lg leading-tight font-extrabold">{s.name}</span>
+          {s.favourite && (
+            <>
+              <Star className="h-4 w-4 shrink-0 fill-fav text-fav" aria-hidden />
+              <span className="sr-only">{t("fav.label")}</span>
+            </>
+          )}
+          {s.booked && (
+            <>
+              <CircleCheck className="h-4 w-4 shrink-0 text-good" aria-hidden />
+              <span className="sr-only">{t("stay.booked")}</span>
+            </>
+          )}
+        </span>
         <span className="flex items-center gap-1.5 text-base text-muted">
           <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", `sw-${s.who}`)} aria-hidden />
           <span className="truncate">{who}</span>
         </span>
         {p && (
-          <>
-            <span className="flex flex-wrap items-baseline gap-x-1.5">
-              <span className="font-display text-xl leading-tight font-extrabold tabular-nums">{pinLabel(s)}</span>
-              <span className="text-base whitespace-nowrap text-muted">{tn("stay.nights", NIGHTS)}</span>
-            </span>
-            {p.people > 0 && <span className="text-base tabular-nums">{t("stay.perPerson", { amount: eur(p.perPerson) })}</span>}
-          </>
+          <span className="flex items-baseline gap-1.5 whitespace-nowrap">
+            <span className="font-display text-lg leading-tight font-extrabold tabular-nums">{pinLabel(s)}</span>
+            {p.people > 0 && <span className="truncate text-base text-muted tabular-nums">· {t("stay.perPerson", { amount: eur(p.perPerson) })}</span>}
+          </span>
         )}
       </span>
     </button>
