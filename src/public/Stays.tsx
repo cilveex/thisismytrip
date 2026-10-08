@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Car, CircleCheck, CircleDashed, Columns3, ExternalLink, Footprints, Hand, Images, MapPin, Waves } from "lucide-react";
+import { Car, CircleCheck, CircleDashed, Columns3, ExternalLink, Footprints, Hand, Images, MapPin, Star, Waves } from "lucide-react";
 import type { PublicTrip } from "@/lib/public-trip";
 import { eur } from "@/lib/budget";
 import { NIGHTS, type Who } from "@/lib/trip-data";
@@ -19,8 +19,11 @@ const StaysMap = lazy(() => import("./StaysMap"));
  */
 export function Stays({ trip }: { trip: PublicTrip }) {
   const { t } = useI18n();
-  const stays = sortStays(trip.stays);
-  const anyBooked = stays.some((s) => s.booked);
+  const all = sortStays(trip.stays);
+  const [only, setOnly] = useOnlyPicked();
+  const picked = all.filter((s) => s.booked || s.favourite);
+  const stays = only ? picked : all;
+  const anyBooked = all.some((s) => s.booked);
   const { names, group } = useGroups(trip);
   const pinKey = usePins(stays, group);
   const hasPins = stays.some(hasSpot);
@@ -34,6 +37,13 @@ export function Stays({ trip }: { trip: PublicTrip }) {
   const [hot, setHot] = useState<string | null>(null);
   const [panKey, setPanKey] = useState(0);
   const [scrollReq, setScrollReq] = useState<{ i: number; smooth: boolean; n: number } | null>(null);
+  const toggleOnly = (v: boolean) => {
+    setOnly(v);
+    // A different set of cards: start at the first one
+    setActive(0);
+    setScrollReq((r) => ({ i: 0, smooth: false, n: (r?.n ?? 0) + 1 }));
+    setPanKey((k) => k + 1);
+  };
   const indexOf = (id: string) => stays.findIndex((s) => s.id === id);
   const showCard = (i: number, smooth: boolean) => setScrollReq((r) => ({ i, smooth, n: (r?.n ?? 0) + 1 }));
   // The details dialog moved to another place: follow it underneath
@@ -52,15 +62,23 @@ export function Stays({ trip }: { trip: PublicTrip }) {
       {!anyBooked && <p className="mb-6 text-xl">{t("stay.notBooked")}</p>}
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        {groups.length > 0 && (
-          <ul aria-label={t("stay.legend")} className="flex flex-wrap gap-x-4 gap-y-1 text-base font-bold">
-            {groups.map((w) => (
-              <li key={w} className="flex items-center gap-2">
-                <span className={cn("h-4 w-7 rounded-full border-2 border-white shadow", `sw-${w}`)} aria-hidden />
-                {group(w)}
-              </li>
-            ))}
-          </ul>
+        {all.length > 1 ? (
+          <button
+            type="button"
+            role="switch"
+            aria-checked={only}
+            onClick={() => toggleOnly(!only)}
+            className="flex min-h-12 items-center gap-3 text-left font-bold"
+          >
+            <span aria-hidden className={cn("relative h-7 w-12 shrink-0 rounded-full transition-colors", only ? "bg-primary" : "bg-line")}>
+              <span className={cn("absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform", only && "translate-x-5")} />
+            </span>
+            <span>
+              {t("filter.label")} <span className="font-normal text-muted tabular-nums">({t("filter.count", { n: picked.length, total: all.length })})</span>
+            </span>
+          </button>
+        ) : (
+          <span />
         )}
         {stays.length > 1 && (
           <button
@@ -73,7 +91,9 @@ export function Stays({ trip }: { trip: PublicTrip }) {
         )}
       </div>
 
-      {wide ? (
+      {stays.length === 0 && <p className="rounded-2xl bg-soft p-5 text-lg">{t("filter.none")}</p>}
+
+      {stays.length === 0 ? null : wide ? (
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-start gap-6 lg:mx-[calc(50%-min(36rem,50vw-1.5rem))]">
           <ol aria-label={t("stay.list")} className="space-y-5">
             {stays.map((s, i) => (
@@ -102,6 +122,7 @@ export function Stays({ trip }: { trip: PublicTrip }) {
                   className="h-[calc(100dvh-8rem)] max-h-[50rem] min-h-[24rem] rounded-[var(--radius-card)] border"
                 />
               </Suspense>
+              <MapLegend groups={groups} group={group} />
             </div>
           )}
         </div>
@@ -127,6 +148,7 @@ export function Stays({ trip }: { trip: PublicTrip }) {
           mapFallback={mapFallback}
         />
       )}
+      {!wide && hasPins && stays.length > 0 && <MapLegend groups={groups} group={group} />}
 
       <PlaceDialog stays={stays} index={place.index} names={names} onIndex={onDialogIndex} onClose={place.close} />
       <CompareDialog
@@ -139,6 +161,55 @@ export function Stays({ trip }: { trip: PublicTrip }) {
       />
     </>
   );
+}
+
+/** Under the map: what the pin colours and the star mean */
+function MapLegend({ groups, group }: { groups: Who[]; group: (who: Who) => string }) {
+  const { t } = useI18n();
+  return (
+    <ul aria-label={t("stay.legend")} className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-base font-bold">
+      {groups.map((w) => (
+        <li key={w} className="flex items-center gap-2">
+          <span className={cn("h-4 w-7 rounded-full border-2 border-white shadow", `sw-${w}`)} aria-hidden />
+          {group(w)}
+        </li>
+      ))}
+      <li className="flex items-center gap-2">
+        <span className="h-4 w-7 rounded-full border-2 border-white shadow sw-booked" aria-hidden />
+        {t("legend.booked")}
+      </li>
+      <li className="flex items-center gap-2">
+        <span className="grid h-5 w-5 place-items-center rounded-full bg-white shadow" aria-hidden>
+          <Star className="h-3.5 w-3.5 fill-[#e2457a] text-[#e2457a]" />
+        </span>
+        {t("fav.label")}
+      </li>
+    </ul>
+  );
+}
+
+const ONLY_KEY = "tenerife-only-picked";
+
+/** "Only favourites and booked", remembered on this device */
+function useOnlyPicked() {
+  const [only, setOnly] = useState(() => {
+    try {
+      return localStorage.getItem(ONLY_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  return [
+    only,
+    (v: boolean) => {
+      setOnly(v);
+      try {
+        localStorage.setItem(ONLY_KEY, v ? "1" : "0");
+      } catch {
+        /* private mode: just this visit */
+      }
+    },
+  ] as const;
 }
 
 /* ---------------- Phones: map + carousel ---------------- */
@@ -289,7 +360,7 @@ function PhoneCard({ stay: s, who, active, onOpen }: { stay: Stay; who: string; 
       onClick={onOpen}
       className={cn(
         "surface flex h-full min-h-36 w-full overflow-hidden text-left transition-shadow",
-        s.favourite && "border-accent border-2",
+       
         active && "ring-3 ring-ink",
       )}
     >
@@ -302,7 +373,7 @@ function PhoneCard({ stay: s, who, active, onOpen }: { stay: Stay; who: string; 
         )}
       </span>
       <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-3 py-2">
-        {s.favourite && <FavBadge who={s.who} className="mb-0.5 !px-2 !text-sm" />}
+        {s.favourite && <FavBadge className="mb-0.5 !px-2 !text-sm" />}
         <span className="line-clamp-2 font-display text-lg leading-tight font-extrabold">{s.name}</span>
         <span className="flex items-center gap-1.5 text-base text-muted">
           <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", `sw-${s.who}`)} aria-hidden />
@@ -350,7 +421,7 @@ function DeskCard({
       onMouseLeave={() => onHot(false)}
       onFocus={() => onHot(true)}
       onBlur={(e) => !e.currentTarget.contains(e.relatedTarget) && onHot(false)}
-      className={cn("surface relative flex flex-col overflow-hidden transition-shadow lg:flex-row", s.favourite && "border-accent border-2", hot && "ring-3 ring-ink")}
+      className={cn("surface relative flex flex-col overflow-hidden transition-shadow lg:flex-row", hot && "ring-3 ring-ink")}
     >
       <div className="relative shrink-0 lg:w-48">
         <PlaceCover stay={s} className="aspect-[16/9] h-full w-full lg:aspect-auto" />
@@ -362,7 +433,7 @@ function DeskCard({
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-5">
         <div>
-          {s.favourite && <FavBadge who={s.who} className="mb-2" />}
+          {s.favourite && <FavBadge className="mb-2" />}
           <h3 className="text-2xl font-extrabold break-words">{s.name}</h3>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-base">
             <span className="flex items-center gap-1.5 font-bold">

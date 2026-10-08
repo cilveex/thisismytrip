@@ -335,7 +335,7 @@ function Details({ stay: s, titleId, names }: { stay: Stay; titleId: string; nam
   return (
     <div className="space-y-6 p-5 md:p-8">
       <div>
-        {s.favourite && <FavBadge who={s.who} className="mb-3" />}
+        {s.favourite && <FavBadge className="mb-3" />}
         <h2 id={titleId} className="text-3xl font-extrabold break-words md:text-4xl">
           {s.name}
         </h2>

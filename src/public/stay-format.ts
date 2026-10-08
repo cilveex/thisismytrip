@@ -21,12 +21,12 @@ export const pinLabel = (s: Stay) => (s.price ? `${s.price.estimate ? "≈ " : "
 
 export const hasSpot = (s: Stay): s is Stay & { lat: number; lng: number } => s.lat != null && s.lng != null;
 
-/** Favourites first, then booked, then family places before couple places; otherwise the planner's order */
+/** Booked first, then favourites, then the rest; family places before couple places; otherwise the planner's order */
 export const sortStays = (stays: Stay[]) =>
   [...stays].sort(
     (a, b) =>
-      Number(!!b.favourite) - Number(!!a.favourite) ||
       Number(b.booked) - Number(a.booked) ||
+      Number(!!b.favourite) - Number(!!a.favourite) ||
       Number(a.who === "couple") - Number(b.who === "couple"),
   );
 
@@ -37,9 +37,6 @@ export function useGroups(trip: PublicTrip) {
   const group = (who: Who) => (who === "family" ? t("group.family") : names("couple") || t("group.couple"));
   return { names, group };
 }
-
-/** Badge wording: a couple's pick is a decision, the family's is a suggestion */
-export const favKey = (who: Who) => (who === "couple" ? "fav.couple" : "fav.family") as "fav.couple" | "fav.family";
 
 /** Map pins for the places that have a spot */
 export function usePins(stays: Stay[], group: (who: Who) => string) {
@@ -59,7 +56,7 @@ export function usePins(stays: Stay[], group: (who: Who) => string) {
         s.name,
         group(s.who),
         p && (p.estimate ? t("stay.approx", { amount: eur(p.total) }) : eur(p.total)),
-        s.favourite ? t(favKey(s.who)) : "",
+        s.favourite ? t("fav.label") : "",
         s.booked ? t("stay.booked") : t("stay.maybe"),
       ]
         .filter(Boolean)

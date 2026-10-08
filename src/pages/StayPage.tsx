@@ -442,21 +442,7 @@ function AptCard({ apt }: { apt: Apartment }) {
           checked={apt.showToFamily}
           onChange={(showToFamily) => set({ showToFamily })}
         />
-        <Switch
-          label="Favourite"
-          checked={apt.favourite}
-          onChange={(on) =>
-            update((s) => {
-              // One favourite per group: switching one on turns the other off
-              for (const a of s.apartments) if (a.who === apt.who) a.favourite = on && a.id === apt.id;
-            })
-          }
-        />
-        {apt.favourite && (
-          <p className="-mt-2 text-sm text-muted">
-            {apt.who === "couple" ? "Family sees: “We're taking this one”." : "Family sees: “Our recommendation”."}
-          </p>
-        )}
+        <Switch label="Favourite" checked={apt.favourite} onChange={(favourite) => set({ favourite })} />
         <TextField label="Address" value={apt.address} onChange={(address) => set({ address })} />
         <LocationField apt={apt} areaCenter={areaById(trip, apt.area)} onChange={(p) => set(p)} />
         <TextArea label="Note for the family (LV)" rows={2} value={apt.noteLv} onChange={(noteLv) => set({ noteLv })} />

@@ -213,7 +213,7 @@ export function CompareDialog({
                           onClick={() => onOpen(s.id)}
                           className="group flex w-full flex-col gap-2 rounded-xl text-left"
                         >
-                          {s.favourite && <FavBadge who={s.who} className="!px-2 !text-sm" />}
+                          {s.favourite && <FavBadge className="!px-2 !text-sm" />}
                           <PlaceCover stay={s} small className="h-20 w-full rounded-xl md:h-32" />
                           <span className="line-clamp-2 font-display text-lg leading-tight font-extrabold underline-offset-4 group-hover:underline">
                             {s.name}
@@ -244,7 +244,6 @@ export function CompareDialog({
                               className={cn(
                                 "w-[11rem] min-w-[11rem] border-b p-3 align-top tabular-nums md:w-60 md:min-w-60",
                                 isBest ? "bg-good/15 font-extrabold" : "bg-card",
-                                s.favourite && "border-x-2 border-x-accent",
                               )}
                             >
                               {v == null || v === "" ? (

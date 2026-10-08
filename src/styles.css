@@ -23,6 +23,7 @@
   --color-on-accent: var(--on-accent);
   --color-good: var(--good);
   --color-on-good: var(--on-good);
+  --color-fav: var(--fav);
   --color-bad: var(--bad);
   --color-on-bad: var(--on-bad);
 
@@ -42,6 +43,7 @@
   --accent: #f2c230;
   --on-accent: #1d2428;
   --good: #3e6b48;
+  --fav: #e2457a;
   --on-good: #ffffff;
   --bad: #b8432a;
   --on-bad: #ffffff;
@@ -74,6 +76,7 @@
     --on-primary: #0e1a22;
     --good: #82bb8e;
     --on-good: #0e1a12;
+    --fav: #f0709a;
     --bad: #e8866b;
     --on-bad: #22100b;
     --hero: linear-gradient(160deg, #1d4a6b 0%, #12293a 100%);
@@ -94,6 +97,7 @@
   --on-primary: #0e1a22;
   --good: #82bb8e;
   --on-good: #0e1a12;
+  --fav: #f0709a;
   --bad: #e8866b;
   --on-bad: #22100b;
   --hero: linear-gradient(160deg, #1d4a6b 0%, #12293a 100%);
@@ -496,17 +500,25 @@ dialog.place-dialog[open] {
   background: #f2c230;
   color: #1d2428;
 }
+.sp-booked {
+  background: #3e6b48;
+  color: #fff;
+}
+/* Favourite: a pink star in a white disc on the pill's corner, readable on blue, yellow and green */
 .sp-star {
-  font-size: 0.95em;
-  color: #f2c230;
-  margin-right: 2px;
-}
-.sp-couple .sp-star {
-  color: #1d2428;
-}
-.sp-pill.sp-fav {
-  border-color: #f2c230;
-  box-shadow: 0 0 0 2px #1d2428, 0 2px 6px rgb(0 0 0 / 30%);
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #fff;
+  color: #e2457a;
+  font-size: 13px;
+  line-height: 1;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
 }
 .sp-check {
   font-size: 0.95em;
@@ -543,6 +555,9 @@ dialog.place-dialog[open] {
 }
 .sw-couple {
   background: #f2c230;
+}
+.sw-booked {
+  background: #3e6b48;
 }
 
 /* Hover / focus preview on desktop */
