@@ -19,6 +19,12 @@ export const AREA_PHOTOS: AreaPhoto[] = [
   { file: "06-playa-arena-sunset.webp", alt: { lv: "Pludmale starp priedēm un palmām", en: "Beach seen between pine and palm trees" } },
   { file: "07-beach-promenade.webp", alt: { lv: "Melnu smilšu pludmale un promenāde", en: "Black-sand beach and its promenade" } },
   { file: "08-old-town-street.webp", alt: { lv: "Krāsaina iela ar kafejnīcām", en: "A colourful street with cafés" } },
+  { file: "09-black-sand-beach.webp", alt: { lv: "Melnu smilšu pludmale ar palmu ēnām", en: "Black-sand beach with palm shadows" } },
+  { file: "10-beach-walk.webp", alt: { lv: "Pastaiga pa melno smilšu pludmali", en: "A walk along the black-sand beach" } },
+  { file: "11-town-from-above.webp", alt: { lv: "Pilsēta un pludmale no augšas", en: "The town and beach from above" } },
+  { file: "12-coast-pool-aerial.webp", alt: { lv: "Dabisks baseins pie okeāna no augšas", en: "A natural ocean pool on the coast from above" } },
+  { file: "13-harbour-cliffs.webp", alt: { lv: "Osta un Los Gigantes klintis", en: "The harbour and the Los Gigantes cliffs" } },
+  { file: "14-seaside-street.webp", alt: { lv: "Gājēju iela ar klinti un kafejnīcām", en: "A pedestrian street beneath the cliff, with cafés" } },
 ];
 
 export const areaFull = (p: AreaPhoto) => `/area/${p.file}`;
