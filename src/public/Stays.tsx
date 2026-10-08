@@ -61,7 +61,7 @@ export function Stays({ trip }: { trip: PublicTrip }) {
     <>
       {!anyBooked && <p className="mb-6 text-xl">{t("stay.notBooked")}</p>}
 
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         {all.length > 1 ? (
           <button
             type="button"
@@ -90,6 +90,8 @@ export function Stays({ trip }: { trip: PublicTrip }) {
           </button>
         )}
       </div>
+
+      {hasPins && stays.length > 0 && <MapLegend groups={(['family', 'couple'] as Who[]).filter((w) => all.some((s) => s.who === w))} group={group} />}
 
       {stays.length === 0 && <p className="rounded-2xl bg-soft p-5 text-lg">{t("filter.none")}</p>}
 
@@ -122,7 +124,6 @@ export function Stays({ trip }: { trip: PublicTrip }) {
                   className="h-[calc(100dvh-8rem)] max-h-[50rem] min-h-[24rem] rounded-[var(--radius-card)] border"
                 />
               </Suspense>
-              <MapLegend groups={groups} group={group} />
             </div>
           )}
         </div>
@@ -148,7 +149,6 @@ export function Stays({ trip }: { trip: PublicTrip }) {
           mapFallback={mapFallback}
         />
       )}
-      {!wide && hasPins && stays.length > 0 && <MapLegend groups={groups} group={group} />}
 
       <PlaceDialog stays={stays} index={place.index} names={names} onIndex={onDialogIndex} onClose={place.close} />
       <CompareDialog
@@ -163,25 +163,24 @@ export function Stays({ trip }: { trip: PublicTrip }) {
   );
 }
 
-/** Under the map: what the pin colours and the star mean */
+/** Above the map: what the pin colours and the star mean. Compact chips that wrap on phones. */
 function MapLegend({ groups, group }: { groups: Who[]; group: (who: Who) => string }) {
   const { t } = useI18n();
+  const chip = "inline-flex items-center gap-2 rounded-full bg-soft px-3 py-1 text-base leading-snug font-bold";
   return (
-    <ul aria-label={t("stay.legend")} className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-base font-bold">
+    <ul aria-label={t("stay.legend")} className="mb-3 flex flex-wrap gap-2">
       {groups.map((w) => (
-        <li key={w} className="flex items-center gap-2">
-          <span className={cn("h-4 w-7 rounded-full border-2 border-white shadow", `sw-${w}`)} aria-hidden />
+        <li key={w} className={chip}>
+          <span className={cn("h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow", `sw-${w}`)} aria-hidden />
           {group(w)}
         </li>
       ))}
-      <li className="flex items-center gap-2">
-        <span className="h-4 w-7 rounded-full border-2 border-white shadow sw-booked" aria-hidden />
+      <li className={chip}>
+        <span className="h-3.5 w-3.5 shrink-0 rounded-full border-2 border-white shadow sw-booked" aria-hidden />
         {t("legend.booked")}
       </li>
-      <li className="flex items-center gap-2">
-        <span className="grid h-5 w-5 place-items-center rounded-full bg-white shadow" aria-hidden>
-          <Star className="h-3.5 w-3.5 fill-[#e2457a] text-[#e2457a]" />
-        </span>
+      <li className={chip}>
+        <Star className="h-4 w-4 shrink-0 fill-fav text-fav" aria-hidden />
         {t("fav.label")}
       </li>
     </ul>
