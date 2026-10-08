@@ -48,7 +48,7 @@ export function AreaGallery() {
           alt={alt(cover)}
           loading="lazy"
           decoding="async"
-          className="aspect-[4/3] w-full object-cover md:aspect-[16/9]"
+          className="aspect-[4/5] w-full object-cover md:aspect-[4/3]"
         />
       </button>
       {n > 1 && (
@@ -66,7 +66,7 @@ export function AreaGallery() {
                   alt={alt(p)}
                   loading="lazy"
                   decoding="async"
-                  className="aspect-[4/3] w-full object-cover transition-transform hover:scale-105"
+                  className="aspect-[3/4] w-full object-cover transition-transform hover:scale-105"
                 />
               </button>
             </li>
