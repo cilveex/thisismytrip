@@ -142,7 +142,21 @@ function Hero({ trip }: { trip: PublicTrip | null }) {
   const days = daysUntilDeparture();
   const people = trip?.travellers.length ?? 0;
   return (
-    <section className="bg-hero overflow-hidden rounded-[2rem] px-6 py-10 md:px-12 md:py-16" aria-labelledby="hero-h">
+    <section className="bg-hero relative isolate overflow-hidden rounded-[2rem] px-6 py-10 md:px-12 md:py-16" aria-labelledby="hero-h">
+      {/* Decorative photo: eager and high priority, it's the first thing people see */}
+      <img
+        src="/hero/los-gigantes-1000.webp"
+        srcSet="/hero/los-gigantes-640.webp 640w, /hero/los-gigantes-1000.webp 1000w"
+        sizes="(min-width: 768px) 768px, 100vw"
+        width={1000}
+        height={369}
+        alt=""
+        loading="eager"
+        decoding="async"
+        fetchPriority="high"
+        className="hero-photo absolute inset-0 -z-20 h-full w-full object-cover"
+      />
+      <div className="hero-shade absolute inset-0 -z-10" aria-hidden />
       <p className="text-lg font-bold opacity-90">{t("hero.kicker")}</p>
       <h1 id="hero-h" className="mt-1 text-6xl font-extrabold md:text-8xl">
         {t("hero.title")}

@@ -48,6 +48,8 @@
   --bad: #b8432a;
   --on-bad: #ffffff;
   --hero: linear-gradient(160deg, #1f5f8b 0%, #163f5e 100%);
+  --hero-shade: 13 43 69; /* dark Atlantic blue, over the hero photo */
+  --hero-boost: 0;
   --shadow: 0 1px 2px rgb(29 36 40 / 6%), 0 8px 24px -12px rgb(29 36 40 / 18%);
 
   /* Budget categories (stacked bar) */
@@ -80,6 +82,8 @@
     --bad: #e8866b;
     --on-bad: #22100b;
     --hero: linear-gradient(160deg, #1d4a6b 0%, #12293a 100%);
+    --hero-shade: 7 24 40;
+    --hero-boost: 0.05;
     --shadow: 0 1px 2px rgb(0 0 0 / 40%);
     --cat-1: #6fa8d6;
     --cat-9: #6b777d;
@@ -101,6 +105,8 @@
   --bad: #e8866b;
   --on-bad: #22100b;
   --hero: linear-gradient(160deg, #1d4a6b 0%, #12293a 100%);
+  --hero-shade: 7 24 40;
+  --hero-boost: 0.05;
   --shadow: 0 1px 2px rgb(0 0 0 / 40%);
   --cat-1: #6fa8d6;
   --cat-9: #6b777d;
@@ -160,6 +166,22 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow);
+}
+
+/* Hero photo: cliffs stay on the right, the sunset sits behind the text. Phones show a tall crop, so the shade is stronger and more even. */
+.hero-photo {
+  object-position: 62% 50%;
+}
+.hero-shade {
+  background: linear-gradient(90deg, rgb(var(--hero-shade) / calc(0.8 + var(--hero-boost))) 0%, rgb(var(--hero-shade) / calc(0.55 + var(--hero-boost))) 100%);
+}
+@media (min-width: 768px) {
+  .hero-photo {
+    object-position: 25% 40%;
+  }
+  .hero-shade {
+    background: linear-gradient(90deg, rgb(var(--hero-shade) / calc(0.85 + var(--hero-boost))) 0%, rgb(var(--hero-shade) / calc(0.7 + var(--hero-boost))) 45%, rgb(var(--hero-shade) / 0) 100%);
+  }
 }
 
 @utility bg-hero {
