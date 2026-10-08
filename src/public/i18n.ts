@@ -340,7 +340,7 @@ const lv: Partial<Record<Key, string>> = {
   "stay.approx": "apmēram {amount}",
   "stay.cards": "Vietas. Pavelciet uz sāniem, lai redzētu pārējās.",
   "stay.list": "Vietas",
-  "stay.cardsHint": "Pavelciet kartītes. Karti – ar diviem pirkstiem.",
+  "stay.cardsHint": "Velciet kartītes uz sāniem, karti – ar diviem pirkstiem.",
   "stay.legend": "Ko nozīmē krāsas",
   "group.family": "Ģimene",
   "group.couple": "Pāris",
