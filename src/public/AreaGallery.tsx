@@ -91,6 +91,7 @@ function Lightbox({
 }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
   const n = AREA_PHOTOS.length;
   const isOpen = index != null;
   const prev = () => isOpen && index > 0 && onIndex(index - 1);
@@ -99,7 +100,12 @@ function Lightbox({
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (isOpen && !d.open) d.showModal();
+    if (isOpen && !d.open) {
+      d.showModal();
+      // showModal focuses the first button (the X); start on the container instead, so a click
+      // or tap shows no ring. Keyboard users still reach the X with Tab, and it shows its ring then.
+      panel.current?.focus({ preventScroll: true });
+    }
     if (!isOpen && d.open) d.close();
   }, [isOpen]);
 
@@ -165,7 +171,9 @@ function Lightbox({
     >
       {photo && (
         <div
-          className="flex h-full items-center justify-center p-4 md:p-8"
+          ref={panel}
+          tabIndex={-1}
+          className="flex h-full items-center justify-center p-4 outline-none md:p-8"
           onClick={(e) => e.target === e.currentTarget && onClose()}
           onTouchStart={onTouchStart}
           onTouchEnd={onTouchEnd}
@@ -188,7 +196,7 @@ function Lightbox({
               type="button"
               onClick={onClose}
               aria-label={t("area.close")}
-              className="absolute top-2 right-2 grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80"
+              className="absolute top-2 right-2 grid h-11 w-11 place-items-center rounded-full bg-black/60 text-white outline-none hover:bg-black/80 focus-visible:ring-3 focus-visible:ring-white"
             >
               <X className="h-6 w-6" aria-hidden />
             </button>
@@ -212,7 +220,7 @@ function Arrow({ dir, disabled, onClick, label }: { dir: "prev" | "next"; disabl
       disabled={disabled}
       aria-label={label}
       className={cn(
-        "absolute top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white hover:bg-black/80 disabled:invisible md:h-12 md:w-12",
+        "absolute top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-black/60 text-white outline-none hover:bg-black/80 focus-visible:ring-3 focus-visible:ring-white disabled:invisible md:h-12 md:w-12",
         dir === "prev" ? "left-2" : "right-2",
       )}
     >
