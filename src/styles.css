@@ -545,12 +545,6 @@ dialog.place-dialog[open] {
 .sp-mini-couple {
   background: #f2c230;
 }
-.sp-mini-booked {
-  background: #3e6b48;
-}
-.sp-mini-fav {
-  border-color: #e2457a;
-}
 /* Tail pointing at the spot */
 .sp-pill::after {
   content: "";
@@ -584,29 +578,6 @@ dialog.place-dialog[open] {
   background: #f2c230;
   color: #1d2428;
 }
-.sp-booked {
-  background: #3e6b48;
-  color: #fff;
-}
-/* Favourite: a pink star in a white disc on the pill's corner, readable on blue, yellow and green */
-.sp-star {
-  position: absolute;
-  top: -10px;
-  right: -10px;
-  display: grid;
-  place-items: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 9999px;
-  background: #fff;
-  color: #e2457a;
-  font-size: 13px;
-  line-height: 1;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 35%);
-}
-.sp-check {
-  font-size: 0.95em;
-}
 .sp-pill.sp-active {
   transform: translateX(-50%) scale(1.2);
   box-shadow: 0 0 0 3px #1d2428, 0 4px 12px rgb(0 0 0 / 40%);
@@ -639,9 +610,6 @@ dialog.place-dialog[open] {
 }
 .sw-couple {
   background: #f2c230;
-}
-.sw-booked {
-  background: #3e6b48;
 }
 
 /* Hover / focus preview on desktop */

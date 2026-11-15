@@ -1,34 +1,27 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
-import { Car, CircleCheck, CircleDashed, Columns3, ExternalLink, Footprints, Hand, Images, MapPin, Star, Waves } from "lucide-react";
+import { Car, CircleCheck, ExternalLink, Footprints, Hand, Images, MapPin, Waves } from "lucide-react";
 import type { PublicTrip } from "@/lib/public-trip";
 import { eur } from "@/lib/budget";
 import { NIGHTS, type Who } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
 import { PlaceCover, PlaceDialog } from "./PlaceDialog";
-import { FavBadge } from "./FavBadge";
-import { CompareDialog } from "./Compare";
 import { useI18n } from "./i18n";
-import { hasSpot, mapsUrl, pinLabel, sortStays, useCompare, useGroups, useMedia, usePins, type Stay } from "./stay-format";
+import { hasSpot, mapsUrl, pinLabel, sortStays, useGroups, useMedia, usePins, type Stay } from "./stay-format";
 
 const StaysMap = lazy(() => import("./StaysMap"));
 
 /**
- * Where we stay. Phones: a big map with a swipeable card carousel over its bottom edge; swiping
+ * Where we stay: the booked places only (TripPage filters them), one for each group. Phones: a big map with a swipeable card carousel over its bottom edge; swiping
  * pans the map, tapping a pin brings up its card, tapping a card opens the details.
  * Wider screens: cards on the left, a sticky map on the right; hover or focus links the two.
  */
 export function Stays({ trip }: { trip: PublicTrip }) {
   const { t } = useI18n();
-  const all = sortStays(trip.stays);
-  const [only, setOnly] = useOnlyPicked();
-  const picked = all.filter((s) => s.booked || s.favourite);
-  const stays = only ? picked : all;
-  const anyBooked = all.some((s) => s.booked);
+  const stays = sortStays(trip.stays);
   const { names, group } = useGroups(trip);
   const pinKey = usePins(stays, group);
   const hasPins = stays.some(hasSpot);
   const place = usePlaceHash(stays.length);
-  const compare = useCompare();
   const wide = useMedia("(min-width: 768px)");
   const groups = (["family", "couple"] as Who[]).filter((w) => stays.some((s) => s.who === w));
 
@@ -37,13 +30,6 @@ export function Stays({ trip }: { trip: PublicTrip }) {
   const [hot, setHot] = useState<string | null>(null);
   const [panKey, setPanKey] = useState(0);
   const [scrollReq, setScrollReq] = useState<{ i: number; smooth: boolean; n: number } | null>(null);
-  const toggleOnly = (v: boolean) => {
-    setOnly(v);
-    // A different set of cards: start at the first one
-    setActive(0);
-    setScrollReq((r) => ({ i: 0, smooth: false, n: (r?.n ?? 0) + 1 }));
-    setPanKey((k) => k + 1);
-  };
   const indexOf = (id: string) => stays.findIndex((s) => s.id === id);
   const showCard = (i: number, smooth: boolean) => setScrollReq((r) => ({ i, smooth, n: (r?.n ?? 0) + 1 }));
   // The details dialog moved to another place: follow it underneath
@@ -59,41 +45,7 @@ export function Stays({ trip }: { trip: PublicTrip }) {
 
   return (
     <>
-      {!anyBooked && <p className="mb-6 text-xl">{t("stay.notBooked")}</p>}
-
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-        {all.length > 1 ? (
-          <button
-            type="button"
-            role="switch"
-            aria-checked={only}
-            onClick={() => toggleOnly(!only)}
-            className="flex min-h-12 items-center gap-3 text-left font-bold"
-          >
-            <span aria-hidden className={cn("relative h-7 w-12 shrink-0 rounded-full transition-colors", only ? "bg-primary" : "bg-line")}>
-              <span className={cn("absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform", only && "translate-x-5")} />
-            </span>
-            <span>
-              {t("filter.label")} <span className="font-normal text-muted tabular-nums">({t("filter.count", { n: picked.length, total: all.length })})</span>
-            </span>
-          </button>
-        ) : (
-          <span />
-        )}
-        {stays.length > 1 && (
-          <button
-            type="button"
-            onClick={compare.open}
-            className="inline-flex min-h-12 items-center gap-2 rounded-full border-2 border-primary bg-card px-5 font-extrabold text-primary hover:bg-soft"
-          >
-            <Columns3 className="h-5 w-5" aria-hidden /> {t("compare.open")}
-          </button>
-        )}
-      </div>
-
-      {hasPins && stays.length > 0 && <MapLegend groups={(['family', 'couple'] as Who[]).filter((w) => all.some((s) => s.who === w))} group={group} />}
-
-      {stays.length === 0 && <p className="rounded-2xl bg-soft p-5 text-lg">{t("filter.none")}</p>}
+      {hasPins && groups.length > 0 && <MapLegend groups={groups} group={group} />}
 
       {stays.length === 0 ? null : wide ? (
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-start gap-6 lg:mx-[calc(50%-min(36rem,50vw-1.5rem))]">
@@ -151,19 +103,11 @@ export function Stays({ trip }: { trip: PublicTrip }) {
       )}
 
       <PlaceDialog stays={stays} index={place.index} names={names} onIndex={onDialogIndex} onClose={place.close} />
-      <CompareDialog
-        open={compare.isOpen}
-        onClose={compare.close}
-        stays={stays}
-        groups={groups}
-        group={group}
-        onOpen={(id) => place.open(indexOf(id))}
-      />
     </>
   );
 }
 
-/** Above the map: what the pin colours and the star mean. Compact chips that wrap on phones. */
+/** Above the map: which pin colour is whose place. Compact chips that wrap on phones. */
 function MapLegend({ groups, group }: { groups: Who[]; group: (who: Who) => string }) {
   const { t } = useI18n();
   const chip =
@@ -179,40 +123,8 @@ function MapLegend({ groups, group }: { groups: Who[]; group: (who: Who) => stri
           {group(w)}
         </li>
       ))}
-      <li className={chip}>
-        <span className="h-3 w-3 shrink-0 rounded-full border-2 border-white shadow md:h-3.5 md:w-3.5 sw-booked" aria-hidden />
-        {t("legend.booked")}
-      </li>
-      <li className={chip}>
-        <Star className="h-3.5 w-3.5 shrink-0 fill-fav text-fav md:h-4 md:w-4" aria-hidden />
-        {t("fav.label")}
-      </li>
     </ul>
   );
-}
-
-const ONLY_KEY = "tenerife-only-picked";
-
-/** "Only favourites and booked", remembered on this device */
-function useOnlyPicked() {
-  const [only, setOnly] = useState(() => {
-    try {
-      return localStorage.getItem(ONLY_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
-  return [
-    only,
-    (v: boolean) => {
-      setOnly(v);
-      try {
-        localStorage.setItem(ONLY_KEY, v ? "1" : "0");
-      } catch {
-        /* private mode: just this visit */
-      }
-    },
-  ] as const;
 }
 
 /* ---------------- Phones: map + carousel ---------------- */
@@ -374,12 +286,6 @@ function PhoneCard({ stay: s, who, active, onOpen }: { stay: Stay; who: string; 
       <span className="flex min-w-0 flex-1 flex-col justify-center gap-0.5 px-2.5 py-1.5">
         <span className="flex items-center gap-1.5">
           <span className="truncate font-display text-lg leading-tight font-extrabold">{s.name}</span>
-          {s.favourite && (
-            <>
-              <Star className="h-4 w-4 shrink-0 fill-fav text-fav" aria-hidden />
-              <span className="sr-only">{t("fav.label")}</span>
-            </>
-          )}
           {s.booked && (
             <>
               <CircleCheck className="h-4 w-4 shrink-0 text-good" aria-hidden />
@@ -442,7 +348,6 @@ function DeskCard({
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-3 p-5">
         <div>
-          {s.favourite && <FavBadge className="mb-2" />}
           <h3 className="text-2xl font-extrabold break-words">{s.name}</h3>
           <p className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-base">
             <span className="flex items-center gap-1.5 font-bold">
@@ -451,9 +356,8 @@ function DeskCard({
             <span className="flex items-center gap-1 text-muted">
               <MapPin className="h-4 w-4" aria-hidden /> {s.area}
             </span>
-            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 font-bold", s.booked ? "bg-good text-on-good" : "bg-soft")}>
-              {s.booked ? <CircleCheck className="h-4 w-4" aria-hidden /> : <CircleDashed className="h-4 w-4" aria-hidden />}
-              {s.booked ? t("stay.booked") : t("stay.maybe")}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-good px-3 py-0.5 font-bold text-on-good">
+              <CircleCheck className="h-4 w-4" aria-hidden /> {t("stay.booked")}
             </span>
           </p>
         </div>

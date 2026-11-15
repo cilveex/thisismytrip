@@ -1,9 +1,8 @@
 import { useEffect, type ReactNode } from "react";
 import { Link } from "react-router";
-import { Briefcase, CalendarPlus, CircleCheck, CircleDashed, Compass, Footprints, Info, Luggage, MapPin, Plane, PlaneLanding, PlaneTakeoff, Scale, ShoppingBag, Users } from "lucide-react";
+import { Briefcase, CalendarPlus, Car, CircleCheck, Compass, ExternalLink, Footprints, Home, Info, Luggage, MapPin, Plane, PlaneLanding, PlaneTakeoff, Scale, ShoppingBag, Ticket, Users, Wallet } from "lucide-react";
 import { usePublicTrip } from "@/lib/public-store";
 import type { PublicTrip } from "@/lib/public-trip";
-import { eur } from "@/lib/budget";
 import { hasTime, leaveAt, meetAt } from "@/lib/flights";
 import { daysUntilDeparture, tripPhase } from "@/lib/dates";
 import { downloadIcs, type CalEvent } from "@/lib/ics";
@@ -13,7 +12,6 @@ import { I18nProvider } from "./I18nProvider";
 import { Stays } from "./Stays";
 import { AreaGallery } from "./AreaGallery";
 import { AREA_PHOTOS } from "@/lib/area-photos";
-import { listJoin } from "./stay-format";
 import { isKey, useI18n, type Lang } from "./i18n";
 
 const SECTIONS = [
@@ -43,7 +41,7 @@ function Page() {
   const { t } = useI18n();
   const sections = SECTIONS.filter(
     (s) => (s.id !== "info" || !!trip?.goodToKnow.length) &&
-      (s.id !== "why" || hasWhy(trip)) && (s.id !== "budget" || !!trip?.budget),
+      (s.id !== "why" || hasWhy(trip)),
   );
 
   return (
@@ -68,7 +66,7 @@ function Page() {
             <StaySection trip={trip} />
             {hasWhy(trip) && <Why trip={trip} />}
             <Days trip={trip} />
-            {trip.budget && <Budget trip={trip} />}
+            <Costs />
             {trip.goodToKnow.length > 0 && <GoodToKnow trip={trip} />}
           </div>
         )}
@@ -489,10 +487,13 @@ function shiftZone(depart: string, fromCode: string, arrive: string, toCode: str
 
 function StaySection({ trip }: { trip: PublicTrip }) {
   const { t } = useI18n();
-  const anyBooked = trip.stays.some((s) => s.booked);
+  // Only the booked places: one for the family, one for Alvis and Lera. No favourites or whole-trip prices.
+  const stays = trip.stays
+    .filter((s) => s.booked)
+    .map((s) => ({ ...s, favourite: undefined, price: s.price && { ...s.price, tripPerPerson: undefined } }));
   return (
-    <Section id="stay" title={anyBooked || !trip.stays.length ? t("stay.title") : t("stay.considering")} icon={<MapPin className="h-6 w-6" />}>
-      {trip.stays.length ? <Stays trip={trip} /> : <p className="text-xl">{t("stay.none")}</p>}
+    <Section id="stay" title={t("stay.title")} icon={<MapPin className="h-6 w-6" />}>
+      {stays.length ? <Stays trip={{ ...trip, stays }} /> : <p className="text-xl">{t("stay.none")}</p>}
     </Section>
   );
 }
@@ -553,44 +554,72 @@ function Days({ trip }: { trip: PublicTrip }) {
   );
 }
 
-/* ---------------- Budget ---------------- */
+/* ---------------- Costs ---------------- */
 
-function Budget({ trip }: { trip: PublicTrip }) {
-  const { t, tn } = useI18n();
-  const b = trip.budget!;
-  const couple = listJoin(trip.travellers.filter((x) => x.apt === "couple").map((x) => x.name), t("and"));
-  const label = (key: string) => {
-    if (key === "couple") return t("cat.couple", { names: couple || "?" });
-    const k = `cat.${key}`;
-    return isKey(k) ? t(k) : key;
-  };
+/** What the big things cost. Fixed amounts, written here rather than worked out from the planner. */
+const COSTS = {
+  family: 1036.3,
+  car: 363.55,
+  carImg: "https://top-car-hire.com/uploads/images/GROUP-23-V-FVMR-VW-TRANSPORTER.png",
+  loro: 44,
+  loroUrl: "https://www.loroparque.com/en/",
+};
+
+/** "€1 036.30" / "€1 036,30": always with cents, no-break space between thousands */
+function money(n: number, lang: Lang) {
+  const [whole, cents] = n.toFixed(2).split(".");
+  return "€" + whole!.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00a0") + (lang === "lv" ? "," : ".") + cents;
+}
+
+function CostRow({ icon, label, detail, amount, children }: { icon: ReactNode; label: string; detail?: string; amount: string; children?: ReactNode }) {
   return (
-    <Section id="budget" title={t("budget.title")} icon={<CircleCheck className="h-6 w-6" />}>
-      <div className="surface p-4 md:p-8">
-        <p className="font-display text-[2.9rem] leading-none font-extrabold tabular-nums md:text-7xl">{eur(b.perPerson)}</p>
-        <p className="text-2xl font-bold">{t("budget.perPerson")}</p>
-        <p className="mt-4 text-xl">{tn("budget.totalFor", b.people, { amount: eur(b.total) })}</p>
-        <p className="text-xl">{t("budget.pool", { amount: eur(b.poolPerPerson) })}</p>
+    <li className="py-4 md:py-5">
+      <div className="flex items-center gap-3 md:gap-4">
+        <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-soft text-primary" aria-hidden>
+          {icon}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-lg leading-snug font-extrabold md:text-xl">{label}</span>
+          {detail && <span className="block text-base text-muted">{detail}</span>}
+        </span>
+        <span className="shrink-0 text-right font-display text-[1.6rem] leading-none font-extrabold whitespace-nowrap tabular-nums md:text-3xl">
+          {amount}
+        </span>
       </div>
-      <h3 className="mt-8 mb-3 text-2xl font-extrabold">{t("budget.breakdown")}</h3>
-      <ul className="divide-y rounded-[var(--radius-card)] border bg-card px-5">
-        {b.lines.map((l) => (
-          <li key={l.key} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 py-4">
-            <span className="font-bold">{label(l.key)}</span>
-            <span className="row-span-2 text-right text-xl font-extrabold tabular-nums">{eur(l.amount)}</span>
-            <span
-              className={cn(
-                "inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-0.5 text-base font-bold",
-                l.confirmed ? "bg-good text-on-good" : "bg-soft",
-              )}
-            >
-              {l.confirmed ? <CircleCheck className="h-4 w-4" aria-hidden /> : <CircleDashed className="h-4 w-4" aria-hidden />}
-              {l.confirmed ? t("budget.confirmed") : t("budget.estimate")}
-            </span>
-          </li>
-        ))}
+      {children}
+    </li>
+  );
+}
+
+function Costs() {
+  const { t, lang } = useI18n();
+  return (
+    <Section id="budget" title={t("budget.title")} icon={<Wallet className="h-6 w-6" />}>
+      <ul className="divide-y rounded-[var(--radius-card)] border bg-card px-4 md:px-6">
+        <CostRow icon={<Home className="h-6 w-6" />} label={t("cost.family")} amount={money(COSTS.family, lang)} />
+        <CostRow icon={<Car className="h-6 w-6" />} label={t("cost.car")} detail={t("cost.carDates")} amount={money(COSTS.car, lang)}>
+          <img
+            src={COSTS.carImg}
+            alt={t("cost.carAlt")}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            onError={(e) => (e.currentTarget.hidden = true)}
+            className="mx-auto mt-3 max-h-56 w-full max-w-md object-contain"
+          />
+        </CostRow>
+        <CostRow icon={<Ticket className="h-6 w-6" />} label={t("cost.loro")} detail={t("cost.perPerson")} amount={money(COSTS.loro, lang)}>
+          <a
+            href={COSTS.loroUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-3 inline-flex min-h-12 items-center gap-2 rounded-full bg-soft px-5 font-bold text-primary"
+          >
+            loroparque.com <ExternalLink className="h-5 w-5" aria-hidden />
+            <span className="sr-only">{t("place.newTab")}</span>
+          </a>
+        </CostRow>
       </ul>
-      <p className="mt-3 text-base text-muted">{t("budget.note")}</p>
     </Section>
   );
 }
