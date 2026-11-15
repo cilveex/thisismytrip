@@ -57,7 +57,6 @@ export function usePins(stays: Stay[], group: (who: Who) => string) {
         img: s.photos?.[0],
         name: s.name,
         total: p ? tn("stay.totalFor", NIGHTS, { amount: pinLabel(s) }) : s.area,
-        perPerson: p && p.people > 0 ? t("stay.perPerson", { amount: eur(p.perPerson) }) : undefined,
       },
     };
   });

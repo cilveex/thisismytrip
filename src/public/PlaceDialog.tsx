@@ -37,7 +37,7 @@ function Placeholder({ area, label, small, className }: { area: string; label: s
   );
 }
 
-/** 7-night total, per night, per person; and the whole-trip cost with this option when the budget is shared */
+/** 7-night total and per night. No per-person split. */
 export function PriceInfo({ stay, compact }: { stay: Stay; compact?: boolean }) {
   const { t, tn } = useI18n();
   const p = stay.price;
@@ -45,7 +45,6 @@ export function PriceInfo({ stay, compact }: { stay: Stay; compact?: boolean }) 
   const rows: [string, number][] = [
     [tn("price.total", NIGHTS), p.total],
     [t("price.perNight"), p.perNight],
-    ...(p.people > 0 ? [[tn("price.perPerson", p.people), p.perPerson] as [string, number]] : []),
   ];
   return (
     <div className={cn("rounded-2xl bg-soft", compact ? "p-4" : "p-5")}>
@@ -58,9 +57,6 @@ export function PriceInfo({ stay, compact }: { stay: Stay; compact?: boolean }) 
         ))}
       </dl>
       {p.estimate && <p className="mt-2 text-base text-muted">{t("price.estimate")}</p>}
-      {p.tripPerPerson != null && (
-        <p className="mt-3 rounded-xl bg-card p-3 font-bold">{t("price.trip", { amount: eur(p.tripPerPerson) })}</p>
-      )}
     </div>
   );
 }

@@ -109,7 +109,6 @@ const en = {
   "stay.floor": "Floor / lift: {v}",
   "stay.totalFor_one": "{amount} for {n} night",
   "stay.totalFor_other": "{amount} for {n} nights",
-  "stay.perPerson": "{amount} per person",
   "stay.nights_one": "for {n} night",
   "stay.nights_other": "for {n} nights",
   "stay.approx": "about {amount}",
@@ -122,16 +121,12 @@ const en = {
   "group.people_one": "{n} person",
   "group.people_other": "{n} people",
 
-  "compare.perPerson": "Per person",
 
   "price.title": "Price",
   "price.total_one": "Total for {n} night",
   "price.total_other": "Total for {n} nights",
   "price.perNight": "Per night",
-  "price.perPerson_one": "Per person ({n} person)",
-  "price.perPerson_other": "Per person ({n} people)",
   "price.estimate": "Estimated price — the exact price isn't known yet.",
-  "price.trip": "With this option the trip costs {amount} per person.",
 
   "map.airport": "Tenerife South airport",
   "map.showAirport": "Show airport",
@@ -159,6 +154,7 @@ const en = {
 
   "budget.title": "Costs",
   "cost.family": "Family apartment rental",
+  "cost.couple": "Lera and Alvis's apartment rental",
   "cost.car": "Car rental",
   "cost.carDates": "8–15 December",
   "cost.carAlt": "VW Transporter minibus",
@@ -284,7 +280,6 @@ const lv: Partial<Record<Key, string>> = {
   "stay.floor": "Stāvs / lifts: {v}",
   "stay.totalFor_one": "{amount} par {n} nakti",
   "stay.totalFor_other": "{amount} par {n} naktīm",
-  "stay.perPerson": "{amount} katram",
   "stay.nights_one": "par {n} nakti",
   "stay.nights_other": "par {n} naktīm",
   "stay.approx": "apmēram {amount}",
@@ -297,16 +292,12 @@ const lv: Partial<Record<Key, string>> = {
   "group.people_one": "{n} cilvēks",
   "group.people_other": "{n} cilvēki",
 
-  "compare.perPerson": "Katram",
 
   "price.title": "Cena",
   "price.total_one": "Kopā par {n} nakti",
   "price.total_other": "Kopā par {n} naktīm",
   "price.perNight": "Par nakti",
-  "price.perPerson_one": "Katram ({n} cilvēks)",
-  "price.perPerson_other": "Katram ({n} cilvēki)",
   "price.estimate": "Aptuvena cena — precīza cena vēl nav zināma.",
-  "price.trip": "Ar šo variantu ceļojums katram izmaksā {amount}.",
 
   "map.airport": "Tenerifes Dienvidu lidosta",
   "map.showAirport": "Rādīt lidostu",
@@ -334,6 +325,7 @@ const lv: Partial<Record<Key, string>> = {
 
   "budget.title": "Izmaksas",
   "cost.family": "Ģimenes dzīvokļa īre",
+  "cost.couple": "Leras un Alvja dzīvokļa īre",
   "cost.car": "Mašīnas noma",
   "cost.carDates": "8.–15. decembris",
   "cost.carAlt": "Mikroautobuss VW Transporter",

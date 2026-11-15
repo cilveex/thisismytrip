@@ -487,10 +487,8 @@ function shiftZone(depart: string, fromCode: string, arrive: string, toCode: str
 
 function StaySection({ trip }: { trip: PublicTrip }) {
   const { t } = useI18n();
-  // Only the booked places: one for the family, one for Alvis and Lera. No favourites or whole-trip prices.
-  const stays = trip.stays
-    .filter((s) => s.booked)
-    .map((s) => ({ ...s, favourite: undefined, price: s.price && { ...s.price, tripPerPerson: undefined } }));
+  // Only the booked places: one for the family, one for Alvis and Lera. No favourites.
+  const stays = trip.stays.filter((s) => s.booked).map((s) => ({ ...s, favourite: undefined }));
   return (
     <Section id="stay" title={t("stay.title")} icon={<MapPin className="h-6 w-6" />}>
       {stays.length ? <Stays trip={{ ...trip, stays }} /> : <p className="text-xl">{t("stay.none")}</p>}
@@ -559,6 +557,7 @@ function Days({ trip }: { trip: PublicTrip }) {
 /** What the big things cost. Fixed amounts, written here rather than worked out from the planner. */
 const COSTS = {
   family: 1036.3,
+  couple: 620,
   car: 363.55,
   carImg: "https://top-car-hire.com/uploads/images/GROUP-23-V-FVMR-VW-TRANSPORTER.png",
   loro: 44,
@@ -597,6 +596,7 @@ function Costs() {
     <Section id="budget" title={t("budget.title")} icon={<Wallet className="h-6 w-6" />}>
       <ul className="divide-y rounded-[var(--radius-card)] border bg-card px-4 md:px-6">
         <CostRow icon={<Home className="h-6 w-6" />} label={t("cost.family")} amount={money(COSTS.family, lang)} />
+        <CostRow icon={<Home className="h-6 w-6" />} label={t("cost.couple")} amount={money(COSTS.couple, lang)} />
         <CostRow icon={<Car className="h-6 w-6" />} label={t("cost.car")} detail={t("cost.carDates")} amount={money(COSTS.car, lang)}>
           <img
             src={COSTS.carImg}

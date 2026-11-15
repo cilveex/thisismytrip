@@ -1,7 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { Car, CircleCheck, ExternalLink, Footprints, Hand, Images, MapPin, Waves } from "lucide-react";
 import type { PublicTrip } from "@/lib/public-trip";
-import { eur } from "@/lib/budget";
 import { NIGHTS, type Who } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
 import { PlaceCover, PlaceDialog } from "./PlaceDialog";
@@ -300,7 +299,6 @@ function PhoneCard({ stay: s, who, active, onOpen }: { stay: Stay; who: string; 
         {p && (
           <span className="flex items-baseline gap-1.5 whitespace-nowrap">
             <span className="font-display text-lg leading-tight font-extrabold tabular-nums">{pinLabel(s)}</span>
-            {p.people > 0 && <span className="truncate text-base text-muted tabular-nums">· {t("stay.perPerson", { amount: eur(p.perPerson) })}</span>}
           </span>
         )}
       </span>
@@ -365,7 +363,6 @@ function DeskCard({
           <p className="flex flex-wrap items-baseline gap-x-3">
             <span className="font-display text-3xl font-extrabold tabular-nums">{pinLabel(s)}</span>
             <span className="text-muted">{tn("stay.nights", NIGHTS)}</span>
-            {p.people > 0 && <span className="w-full font-bold tabular-nums">{t("stay.perPerson", { amount: eur(p.perPerson) })}</span>}
           </p>
         )}
         {facts.length > 0 && (
