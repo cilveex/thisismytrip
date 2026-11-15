@@ -26,7 +26,7 @@ export interface StayPin {
   /** Drive from the airport, minutes, for the edge arrow */
   driveMin?: number;
   /** Hover / focus preview, only shown when `previews` is on */
-  preview?: { img?: string; name: string; total: string; perPerson?: string };
+  preview?: { img?: string; name: string; total: string };
 }
 
 /** Pills sit this far above their spot, on a small tail */
@@ -255,9 +255,8 @@ export default function StaysMap({
         className: "sp-root",
         html:
           `<span class="sp-leader"></span><span class="sp-dot"></span>` +
-          `<span class="sp-mini sp-mini-${p.group}${p.booked ? " sp-mini-booked" : ""}${p.favourite ? " sp-mini-fav" : ""}"></span>` +
-          `<span class="sp-pos"><span class="sp-pill sp-${p.group}${p.booked ? " sp-booked" : ""}${p.favourite ? " sp-fav" : ""}${tappable ? " sp-click" : ""}">` +
-          `${p.favourite ? '<span class="sp-star" aria-hidden="true">★</span>' : ""}${p.booked ? '<span class="sp-check" aria-hidden="true">✓</span>' : ""}${esc(p.label)}</span></span>`,
+          `<span class="sp-mini sp-mini-${p.group}"></span>` +
+          `<span class="sp-pos"><span class="sp-pill sp-${p.group}${tappable ? " sp-click" : ""}">${esc(p.label)}</span></span>`,
         iconSize: [0, 0],
         iconAnchor: [0, 0],
       });
@@ -280,9 +279,7 @@ export default function StaysMap({
         marker.bindTooltip(
           `<div class="sp-preview">${
             v.img ? `<img src="${esc(v.img)}" alt="" referrerpolicy="no-referrer">` : ""
-          }<div class="sp-preview-text"><strong>${esc(v.name)}</strong><span>${esc(v.total)}</span>${
-            v.perPerson ? `<span>${esc(v.perPerson)}</span>` : ""
-          }</div></div>`,
+          }<div class="sp-preview-text"><strong>${esc(v.name)}</strong><span>${esc(v.total)}</span></div></div>`,
           { direction: "top", className: "tip-preview", opacity: 1 },
         );
         marker.on("mouseover", () => cb.current.onPinHover?.(p.id));

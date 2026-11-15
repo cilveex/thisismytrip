@@ -21,14 +21,8 @@ export const pinLabel = (s: Stay) => (s.price ? `${s.price.estimate ? "≈ " : "
 
 export const hasSpot = (s: Stay): s is Stay & { lat: number; lng: number } => s.lat != null && s.lng != null;
 
-/** Booked first, then favourites, then the rest; family places before couple places; otherwise the planner's order */
-export const sortStays = (stays: Stay[]) =>
-  [...stays].sort(
-    (a, b) =>
-      Number(b.booked) - Number(a.booked) ||
-      Number(!!b.favourite) - Number(!!a.favourite) ||
-      Number(a.who === "couple") - Number(b.who === "couple"),
-  );
+/** Family places before couple places; otherwise the planner's order */
+export const sortStays = (stays: Stay[]) => [...stays].sort((a, b) => Number(a.who === "couple") - Number(b.who === "couple"));
 
 /** Who a place is for, short: "Family" / "Alvis and Lera"; plus the names in full */
 export function useGroups(trip: PublicTrip) {
@@ -50,14 +44,12 @@ export function usePins(stays: Stay[], group: (who: Who) => string) {
       label: pinLabel(s),
       group: s.who,
       booked: s.booked,
-      favourite: !!s.favourite,
       driveMin: s.driveMin,
       title: [
         s.name,
         group(s.who),
         p && (p.estimate ? t("stay.approx", { amount: eur(p.total) }) : eur(p.total)),
-        s.favourite ? t("fav.label") : "",
-        s.booked ? t("stay.booked") : t("stay.maybe"),
+        s.booked ? t("stay.booked") : "",
       ]
         .filter(Boolean)
         .join(", "),
@@ -65,7 +57,6 @@ export function usePins(stays: Stay[], group: (who: Who) => string) {
         img: s.photos?.[0],
         name: s.name,
         total: p ? tn("stay.totalFor", NIGHTS, { amount: pinLabel(s) }) : s.area,
-        perPerson: p && p.people > 0 ? t("stay.perPerson", { amount: eur(p.perPerson) }) : undefined,
       },
     };
   });

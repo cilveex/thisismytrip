@@ -1,10 +1,9 @@
 import { lazy, Suspense, useEffect, useId, useRef, useState, type ReactNode, type TouchEvent } from "react";
-import { BedDouble, Building2, Car, ChevronLeft, ChevronRight, CircleCheck, CircleDashed, ExternalLink, Footprints, ImageOff, MapPin, Users, Waves, X } from "lucide-react";
+import { BedDouble, Building2, Car, ChevronLeft, ChevronRight, CircleCheck, ExternalLink, Footprints, ImageOff, MapPin, Users, Waves, X } from "lucide-react";
 import { eur } from "@/lib/budget";
 import { NIGHTS } from "@/lib/trip-data";
 import { cn } from "@/lib/cn";
 import { useI18n } from "./i18n";
-import { FavBadge } from "./FavBadge";
 import { mapsUrl, pinLabel, type Stay } from "./stay-format";
 
 const StaysMap = lazy(() => import("./StaysMap"));
@@ -38,7 +37,7 @@ function Placeholder({ area, label, small, className }: { area: string; label: s
   );
 }
 
-/** 7-night total, per night, per person; and the whole-trip cost with this option when the budget is shared */
+/** 7-night total and per night. No per-person split. */
 export function PriceInfo({ stay, compact }: { stay: Stay; compact?: boolean }) {
   const { t, tn } = useI18n();
   const p = stay.price;
@@ -46,7 +45,6 @@ export function PriceInfo({ stay, compact }: { stay: Stay; compact?: boolean }) 
   const rows: [string, number][] = [
     [tn("price.total", NIGHTS), p.total],
     [t("price.perNight"), p.perNight],
-    ...(p.people > 0 ? [[tn("price.perPerson", p.people), p.perPerson] as [string, number]] : []),
   ];
   return (
     <div className={cn("rounded-2xl bg-soft", compact ? "p-4" : "p-5")}>
@@ -59,9 +57,6 @@ export function PriceInfo({ stay, compact }: { stay: Stay; compact?: boolean }) 
         ))}
       </dl>
       {p.estimate && <p className="mt-2 text-base text-muted">{t("price.estimate")}</p>}
-      {p.tripPerPerson != null && (
-        <p className="mt-3 rounded-xl bg-card p-3 font-bold">{t("price.trip", { amount: eur(p.tripPerPerson) })}</p>
-      )}
     </div>
   );
 }
@@ -322,7 +317,7 @@ function Details({ stay: s, titleId, names }: { stay: Stay; titleId: string; nam
   const listing = /booking\.com$/.test(host) ? t("place.openBooking") : /airbnb\./.test(host) ? t("place.openAirbnb") : t("stay.listing");
   const pin =
     s.lat != null && s.lng != null
-      ? JSON.stringify([{ id: s.id, lat: s.lat, lng: s.lng, label: pinLabel(s), group: s.who, booked: s.booked, title: s.name, driveMin: s.driveMin, favourite: !!s.favourite }])
+      ? JSON.stringify([{ id: s.id, lat: s.lat, lng: s.lng, label: pinLabel(s), group: s.who, booked: s.booked, title: s.name, driveMin: s.driveMin }])
       : null;
   const facts: [ReactNode, string][] = [];
   if (s.seaMin != null && s.seaMin > 0) facts.push([<Waves key="s" className="h-6 w-6" />, tn("stay.sea", s.seaMin)]);
@@ -335,20 +330,13 @@ function Details({ stay: s, titleId, names }: { stay: Stay; titleId: string; nam
   return (
     <div className="space-y-6 p-5 md:p-8">
       <div>
-        {s.favourite && <FavBadge className="mb-3" />}
         <h2 id={titleId} className="text-3xl font-extrabold break-words md:text-4xl">
           {s.name}
         </h2>
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2 text-lg">
           <span className="font-bold">{s.area}</span>
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-base font-bold",
-              s.booked ? "bg-good text-on-good" : "bg-soft",
-            )}
-          >
-            {s.booked ? <CircleCheck className="h-4 w-4" aria-hidden /> : <CircleDashed className="h-4 w-4" aria-hidden />}
-            {s.booked ? t("stay.booked") : t("stay.maybe")}
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-good px-3 py-0.5 text-base font-bold text-on-good">
+            <CircleCheck className="h-4 w-4" aria-hidden /> {t("stay.booked")}
           </span>
         </p>
       </div>
